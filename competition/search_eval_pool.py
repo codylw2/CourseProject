@@ -27,6 +27,8 @@ def load_ranker(cfg_file, ranker_str, params):
         return metapy.index.JelinekMercer(params[0])
     elif ranker_str == 'ad':
         return metapy.index.AbsoluteDiscount(params[0])
+    else:
+        raise Exception('Unknown ranker')
 
 
 def rank_results(ranker, query_file, idx, doc_dict):
@@ -65,7 +67,7 @@ if __name__ == '__main__':
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
 
-    ranker_str = 'dp'
+    ranker_str = 'bm25'
 
     if ranker_str == 'dp':
         params = [91.82]
@@ -73,8 +75,10 @@ if __name__ == '__main__':
         params = [0.38]
     elif ranker_str == 'ad':
         params = [1.31]
+    elif ranker_str == 'bm25':
+        params = [2.3, .84, 0]
     else:
-        params = [1.2, .75, 100]
+        raise Exception('Unknown ranker')
 
     print('loading ranker...')
     ranker = load_ranker(cfg, ranker_str, params)
