@@ -1,0 +1,4 @@
+{ "prescript_commands": [ "pip install --upgrade requests metapy"
+],
+    "entrypoint": "ir_grader"
+}
