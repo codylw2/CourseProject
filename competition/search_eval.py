@@ -6,9 +6,7 @@ import json
 
 import metapy
 import pytoml
-
-from multiprocessing import Pool
-from functools import partial
+import shutil
 
 script_dir = os.path.dirname(__file__)
 
@@ -31,7 +29,7 @@ def load_ranker(cfg_file, ranker_str, params):
         raise Exception('Unknown ranker')
 
 
-def rank_results(ranker, query_file, idx, doc_dict):
+def rank_results(ranker, query_file, idx, doc_list):
     top_k = 1000
     with open(os.path.join(script_dir, '..', 'predictions.txt'), 'w') as txt:
         query = metapy.index.Document()
@@ -40,7 +38,7 @@ def rank_results(ranker, query_file, idx, doc_dict):
             results = ranker.score(idx, query, top_k)
 
             for res in results:
-                doc_id = doc_dict['id'][str(res[0])]
+                doc_id = doc_list[res[0]]
                 score = res[1]
                 txt.write('{} {} {}\n'.format(query_num+1, doc_id, score))
 
@@ -50,6 +48,8 @@ def rank_results(ranker, query_file, idx, doc_dict):
 if __name__ == '__main__':
 
     t_start = time.time()
+
+    os.chdir('cranfield_test')
 
     cfg = 'config.toml'
 
@@ -61,8 +61,11 @@ if __name__ == '__main__':
     with open(query_path, 'r') as fp:
         query_file = fp.readlines()
 
-    with open('docs.json', 'r') as json_f:
-        doc_dict = json.load(json_f)
+    with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
+        doc_list = json.load(json_f)['uid_order']
+
+    print('removing old idx...')
+    shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
@@ -84,4 +87,7 @@ if __name__ == '__main__':
     ranker = load_ranker(cfg, ranker_str, params)
 
     print('ranking docs...')
-    rank_results(ranker, query_file, idx, doc_dict)
+    rank_results(ranker, query_file, idx, doc_list)
+
+    # expected run time x seconds
+    print('script ran in {} seconds'.format(time.time()-t_start))
