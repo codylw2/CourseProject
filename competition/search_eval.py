@@ -89,5 +89,5 @@ if __name__ == '__main__':
     print('ranking docs...')
     rank_results(ranker, query_file, idx, doc_list)
 
-    # expected run time x seconds
+    # expected run time 150 seconds
     print('script ran in {} seconds'.format(time.time()-t_start))

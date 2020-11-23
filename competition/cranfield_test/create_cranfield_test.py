@@ -29,7 +29,7 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            query_text = queries[str(key)]['question']  # query, question, narrative
+            query_text = queries[str(key)]['question'].replace('?', '')  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
 
@@ -43,9 +43,9 @@ def update_text(text, uid, variants):
     for re_var in comp_variants:
         text = re_var.sub('coronavirus', text)
 
-    basic_tokenizer = tokenization.BasicTokenizer(do_lower_case=True, split_on_punc=True)
-    tokens = basic_tokenizer.tokenize(text)
-    text = ' '.join(tokens)
+    # basic_tokenizer = tokenization.BasicTokenizer(do_lower_case=True, split_on_punc=True)
+    # tokens = basic_tokenizer.tokenize(text)
+    # text = ' '.join(tokens)
 
     return text, uid
 
