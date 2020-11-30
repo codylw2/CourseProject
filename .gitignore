@@ -1,3 +1,6 @@
 /competition/train_files/
 /competition/test_files/
 /competition/idx/
+/competition/cranfield_train/train_files/train/
+/competition/cranfield_test/test_files/test/
+/competition/bert/tuned/
