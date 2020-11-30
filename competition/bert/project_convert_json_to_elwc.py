@@ -45,6 +45,12 @@ class TFRBertUtilJSON(object):
     # In: filename of JSON with ranking problems (see example json files for output)
     # Out: creates TFrecord output file, also returns list of ranking problems read in from JSON
     def convert_json_to_elwc_export(self, filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn, filenameTrainOut, filenameEvalOut):
+        if not os.path.isdir(os.path.dirname(filenameTrainOut)):
+            os.makedirs(os.path.dirname(filenameTrainOut))
+
+        if not os.path.isdir(os.path.dirname(filenameEvalOut)):
+            os.makedirs(os.path.dirname(filenameEvalOut))
+
         # Step 1: Convert JSON to ELWC
         (trainELWCOut, evalELWCOut) = self.convert_json_to_elwc(filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn)
 
@@ -71,7 +77,16 @@ class TFRBertUtilJSON(object):
         return
 
     def create_chunks(self, query, title, text, max_size):
+        if not text and title:
+            text = title.copy()
+            title = []
+
         chunk_size = max_size - len(query) - len(title) - 3
+        if chunk_size < 0:
+            title_chnk = int((max_size - len(query) - 3) / 2)
+            title = title[:title_chnk]
+            chunk_size = max_size - len(query) - len(title) - 3
+
         ln_txt = len(text)
         overlap = 50
 
