@@ -94,7 +94,7 @@ if __name__ == '__main__':
     idx = metapy.index.make_inverted_index(cfg)
     fwd_idx = metapy.index.make_forward_index(cfg)
 
-    ranker_str = 'rocchio'
+    ranker_str = 'bm25'
 
     if ranker_str == 'dp':
         params = [91.82]
