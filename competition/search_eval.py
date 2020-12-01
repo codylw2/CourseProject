@@ -30,7 +30,7 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
             'fwd': fwd_idx,
             'initial_ranker': metapy.index.OkapiBM25(k1=params[0], b=params[1], k3=params[2]),
             'alpha': 1.0,
-            'beta': .8,
+            'beta': .2,
             'k': 10,
             'max_terms': 50
         }
@@ -87,8 +87,8 @@ if __name__ == '__main__':
     with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
         doc_list = json.load(json_f)['uid_order']
 
-    print('removing old idx...')
-    shutil.rmtree(os.path.join('idx'))
+    # print('removing old idx...')
+    # shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
