@@ -30,8 +30,8 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
             'fwd': fwd_idx,
             'initial_ranker': metapy.index.OkapiBM25(k1=params[0], b=params[1], k3=params[2]),
             'alpha': 1.0,
-            'beta': .2,
-            'k': 10,
+            'beta': .8,
+            'k': 100,
             'max_terms': 50
         }
         return metapy.index.Rocchio(**kwargs)
