@@ -32,7 +32,7 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
             'alpha': 1.0,
             'beta': .8,
             'k': 100,
-            'max_terms': 50
+            'max_terms': 10
         }
         return metapy.index.Rocchio(**kwargs)
     elif ranker_str == 'kldprf_dp':
