@@ -11,7 +11,7 @@ import shutil
 script_dir = os.path.dirname(__file__)
 
 
-def load_ranker(cfg_file, ranker_str, params):
+def load_ranker(cfg_file, ranker_str, params, fwd_idx):
     """
     Use this function to return the Ranker object to evaluate, e.g. return InL2Ranker(some_param=1.0) 
     The parameter to this function, cfg_file, is the path to a
@@ -25,6 +25,29 @@ def load_ranker(cfg_file, ranker_str, params):
         return metapy.index.JelinekMercer(params[0])
     elif ranker_str == 'ad':
         return metapy.index.AbsoluteDiscount(params[0])
+    elif ranker_str == 'rocchio':
+        kwargs = {
+            'fwd': fwd_idx,
+            'initial_ranker': metapy.index.OkapiBM25(k1=params[0], b=params[1], k3=params[2]),
+            'alpha': 1.0,
+            'beta': .8,
+            'k': 10,
+            'max_terms': 50
+        }
+        return metapy.index.Rocchio(**kwargs)
+    elif ranker_str == 'kldprf_dp':
+        print(type(metapy.index.DirichletPrior()))
+        print(type(metapy.index.JelinekMercer()))
+        print(type(metapy.index.OkapiBM25()))
+        kwargs = {
+            'fwd': fwd_idx,
+            'lm_ranker': metapy.index.DirichletPrior(),
+            'alpha': .5,
+            'lambda': .5,
+            'k': 10,
+            'max_terms': 50
+        }
+        return metapy.index.KLDivergencePRF(**kwargs)
     else:
         raise Exception('Unknown ranker')
 
@@ -69,8 +92,9 @@ if __name__ == '__main__':
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
+    fwd_idx = metapy.index.make_forward_index(cfg)
 
-    ranker_str = 'bm25'
+    ranker_str = 'rocchio'
 
     if ranker_str == 'dp':
         params = [91.82]
@@ -78,13 +102,13 @@ if __name__ == '__main__':
         params = [0.38]
     elif ranker_str == 'ad':
         params = [1.31]
-    elif ranker_str == 'bm25':
+    elif ranker_str in ['bm25', 'kldprf_bm25', 'rocchio']:
         params = [2.3, .84, 0]
     else:
         raise Exception('Unknown ranker')
 
     print('loading ranker...')
-    ranker = load_ranker(cfg, ranker_str, params)
+    ranker = load_ranker(cfg, ranker_str, params, fwd_idx)
 
     print('ranking docs...')
     rank_results(ranker, query_file, idx, doc_list)

@@ -66,12 +66,12 @@ def gen_dat(doc_dict, doc_list, variants):
 
     doc_count = 0
     for uid in doc_list[:]:
-        # outfile.write(doc_dict['uid'][uid]['text'] + '\n')
-        if any([s in doc_dict['uid'][uid]['text'] for s in ['coronavirus', 'sars', 'mers', 'pandemic', 'violence', 'dexamethasone']]):
-            outfile.write(doc_dict['uid'][uid]['text'] + '\n')
-            doc_count += 1
-        else:
-            doc_list.remove(uid)
+        outfile.write(doc_dict['uid'][uid]['text'] + '\n')
+        # if any([s in doc_dict['uid'][uid]['text'] for s in ['coronavirus', 'sars', 'mers', 'pandemic', 'violence', 'dexamethasone']]):
+        #     outfile.write(doc_dict['uid'][uid]['text'] + '\n')
+        #     doc_count += 1
+        # else:
+        #     doc_list.remove(uid)
 
     print(doc_count)
     print(len(doc_list))
