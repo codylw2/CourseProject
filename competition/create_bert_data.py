@@ -182,9 +182,9 @@ def populate_doc_text(doc_dict, doc_list, run_type):
             text = determine_text(src_list, doc_idx)
 
             if len(text.split()) > 3:
-                text = ''
                 break
             else:
+                text = ''
                 doc_idx += 1
 
         if not text and len(doc_dict['uid'][uid]['abstract'].split()) > 3:
