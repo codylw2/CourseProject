@@ -77,16 +77,20 @@ def determine_docs(run_type, uids):
 
     doc_count = 0
     doc_list = list()
-    doc_dict = {'id': dict(), 'uid': dict(), 's2id': dict()}
+    doc_dict = {'id': dict(), 'uid': dict(), 's2id': dict(), 'uid2uid': dict()}
     for idx, row in enumerate(rows):
         uid = row['uid'].strip()
+        uid = doc_dict['uid2uid'].get(uid, uid)
 
         s2id = int(row['s2_id']) if str(row.get('s2_id', 'nan')) != 'nan' and re_int.match(str(row.get('s2_id', 'nan'))) else None
         if s2id and s2id in doc_dict['s2id'].keys():
             doc_dict['s2id'][s2id].append(uid)
+            uid_orig = uid
             uid = doc_dict['s2id'][s2id][0]
+            doc_dict['uid2uid'][uid_orig] = uid
+
         elif s2id:
-            doc_dict['s2id'][s2id] = list()
+            doc_dict['s2id'][s2id] = [uid]
 
         if uids and uid not in uids:
             continue
