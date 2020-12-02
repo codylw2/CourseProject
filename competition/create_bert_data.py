@@ -84,7 +84,7 @@ def determine_docs(run_type, uids):
         s2id = int(row['s2_id']) if str(row.get('s2_id', 'nan')) != 'nan' and re_int.match(str(row.get('s2_id', 'nan'))) else None
         if s2id and s2id in doc_dict['s2id'].keys():
             doc_dict['s2id'][s2id].append(uid)
-            # uid = doc_dict['s2id'][s2id][0]
+            uid = doc_dict['s2id'][s2id][0]
         elif s2id:
             doc_dict['s2id'][s2id] = list()
 

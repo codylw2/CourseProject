@@ -94,8 +94,8 @@ if __name__ == '__main__':
     with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
         doc_list = json.load(json_f)['uid_order']
 
-    # print('removing old idx...')
-    # shutil.rmtree(os.path.join('idx'))
+    print('removing old idx...')
+    shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
