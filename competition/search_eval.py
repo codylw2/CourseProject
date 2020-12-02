@@ -67,10 +67,17 @@ def rank_results(ranker, query_file, idx, doc_list):
             query.content(line.strip())
             results = ranker.score(idx, query, top_k)
 
+            score_dict = dict()
             for res in results:
                 doc_id = doc_list[res[0]]
                 score = res[1]
-                txt.write('{} {} {}\n'.format(query_num+1, doc_id, score))
+                if score not in score_dict.keys():
+                    score_dict[score] = []
+                score_dict[score].append(doc_id)
+
+            for score in sorted(list(score_dict.keys()), reverse=True):
+                for doc_id in sorted(score_dict[score]):
+                    txt.write('{} {} {}\n'.format(query_num+1, doc_id, score))
 
     return
 
@@ -94,8 +101,8 @@ if __name__ == '__main__':
     with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
         doc_list = json.load(json_f)['uid_order']
 
-    print('removing old idx...')
-    shutil.rmtree(os.path.join('idx'))
+    # print('removing old idx...')
+    # shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
