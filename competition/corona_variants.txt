@@ -1,32 +1,48 @@
-2019ncov
+2019 ncov
 2019-ncov
 2019_ncov
+2019ncov
+covid 19
 covid-19
-covid19
 covid_19
+covid19
+covid 2019
 covid-2019
 covid_2019
 covid2019
-coronavirus
+corona virus
+corona-virus
+corona_virus
+ncov 2019
 ncov-2019
 ncov_2019
 ncov2019
+ncov 19
 ncov-19
 ncov_19
 ncov19
+sars cov 2
+sars cov-2
+sars cov_2
+sars cov2
+sars-cov 2
 sars-cov-2
-sars_cov_2
-sarscov_2
+sars-cov_2
 sars-cov2
+sars_cov 2
+sars_cov-2
+sars_cov_2
 sars_cov2
-sarscov2
+sarscov 2
 sarscov-2
 sarscov_2
+sarscov2
 wuhancoronavirus
 cov-sars
+cov_sars
+covsars
 cov-sars-2
 cov-sars2
-cov_sars
 cov_sars-2
 cov_sars2
 human-sars-cov2

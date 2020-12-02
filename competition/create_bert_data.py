@@ -65,6 +65,7 @@ def process_publish_time(pub_time_str, re_date, re_year):
     else:
         return ''
 
+
 def determine_docs(run_type, uids):
     metadata_csv = os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'documents', 'metadata.csv')
     df = pd.read_csv(metadata_csv, dtype=str)
@@ -72,13 +73,21 @@ def determine_docs(run_type, uids):
 
     re_year = re.compile('^\d+$')
     re_date = re.compile('^\d+/\d+/\d+$')
+    re_int = re.compile('^[0-9]+$')
 
     doc_count = 0
     doc_list = list()
-    doc_dict = {'id': dict(), 'uid': dict()}
+    doc_dict = {'id': dict(), 'uid': dict(), 's2id': dict()}
     for idx, row in enumerate(rows):
         uid = row['uid'].strip()
-        
+
+        s2id = int(row['s2_id']) if str(row.get('s2_id', 'nan')) != 'nan' and re_int.match(str(row.get('s2_id', 'nan'))) else None
+        if s2id and s2id in doc_dict['s2id'].keys():
+            doc_dict['s2id'][s2id].append(uid)
+            # uid = doc_dict['s2id'][s2id][0]
+        elif s2id:
+            doc_dict['s2id'][s2id] = list()
+
         if uids and uid not in uids:
             continue
         
@@ -87,6 +96,7 @@ def determine_docs(run_type, uids):
                 'title': str(row['title']).replace('\r', '').replace('\n', ' ') if str(row['title']) != 'nan' else '',
                 'abstract': str(row['abstract']).replace('\r', '').replace('\n', ' ') if str(row['abstract']) != 'nan' else '',
                 'pmcid': row['pmcid'],
+                's2id': s2id,
                 'date': process_publish_time(str(row['publish_time']), re_date, re_year),
                 'pdf_json_files': row.get('pdf_json_files', '').split(';') if str(row.get('pdf_json_files', 'nan')) != 'nan' else None,
                 'pmc_json_files': row.get('pmc_json_files', None) if str(row.get('pmc_json_files', 'nan')) != 'nan' else None
@@ -100,6 +110,9 @@ def determine_docs(run_type, uids):
                 doc_dict['uid'][uid]['abstract'] = str(row['abstract']).replace('\r', '').replace('\n', ' ') if str(row['abstract']) != 'nan' else ''
             if not doc_dict['uid'][uid]['date']:
                 doc_dict['uid'][uid]['date'] = process_publish_time(str(row['publish_time']), re_date, re_year)
+
+            if not doc_dict['uid'][uid]['s2id']:
+                doc_dict['uid'][uid]['s2id'] = s2id
 
             if not doc_dict['uid'][uid]['pmc_json_files'] or 'pmc' not in doc_dict['uid'][uid]['pmc_json_files']:
                 doc_dict['uid'][uid]['pmc_json_files'] = row.get('pmc_json_files', None) if str(row.get('pmc_json_files', 'nan')) != 'nan' else None
@@ -166,23 +179,27 @@ def populate_doc_text(doc_dict, doc_list, run_type):
         text = ''
         doc_idx = 0
         while src_list and doc_idx < len(src_list):
-            text = determine_text(src_list)
+            text = determine_text(src_list, doc_idx)
 
-            if len(text) > 15:
+            if len(text.split()) > 3:
+                text = ''
                 break
             else:
                 doc_idx += 1
 
-        if not text and len(doc_dict['uid'][uid]['abstract']) > 15:
+        if not text and len(doc_dict['uid'][uid]['abstract'].split()) > 3:
             text = doc_dict['uid'][uid]['abstract']
         # elif not text:
         #     count_empty += 1
         #     doc_dict['uid'].pop(uid, None)
         #     continue
 
-        if len(text) > text_max_len:
-            text_max_len = len(text)
-            text_max_doc = src_list[doc_idx]
+        # if len(text) > text_max_len:
+        #     text_max_len = len(text)
+        #     if len(text) > 15:
+        #         text_max_doc = src_list[doc_idx]
+        #     else:
+        #         text_max_doc = src_list[doc_idx-1]
 
         text = re_http.sub('', text)
         for re_var in comp_variants:
@@ -194,9 +211,9 @@ def populate_doc_text(doc_dict, doc_list, run_type):
         del(doc_dict['uid'][uid]['pmc_json_files'])
         del(doc_dict['uid'][uid]['pdf_json_files'])
 
-    print('text_max_len: {}'.format(text_max_len))
-    print('text_max_doc: {}'.format(text_max_doc))
-    print('count_empty: {}'.format(count_empty))
+    # print('text_max_len: {}'.format(text_max_len))
+    # print('text_max_doc: {}'.format(text_max_doc))
+    # print('count_empty: {}'.format(count_empty))
 
     return doc_dict
 
@@ -272,7 +289,7 @@ if __name__ == '__main__':
     # for run_type in ['test']:
         print(run_type)
         queries = parse_queries(script_dir, run_type)
-        queries = tokenize_queries(queries, vocab_file)
+        # queries = tokenize_queries(queries, vocab_file)
         write_json(queries, f'{run_type}_queries.json', True)
         del queries
 
@@ -284,7 +301,7 @@ if __name__ == '__main__':
 
         doc_dict, doc_list = determine_docs(run_type, uids)
         doc_dict = populate_doc_text(doc_dict, doc_list, run_type)
-        doc_dict = tokenize_docs(doc_dict, vocab_file)
+        # doc_dict = tokenize_docs(doc_dict, vocab_file)
         write_json(doc_dict, f'{run_type}_docs.json')
         del doc_dict
 

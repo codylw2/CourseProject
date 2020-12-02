@@ -36,12 +36,19 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
         }
         return metapy.index.Rocchio(**kwargs)
     elif ranker_str == 'kldprf_dp':
-        print(type(metapy.index.DirichletPrior()))
-        print(type(metapy.index.JelinekMercer()))
-        print(type(metapy.index.OkapiBM25()))
         kwargs = {
             'fwd': fwd_idx,
-            'lm_ranker': metapy.index.DirichletPrior(),
+            'lm_ranker': metapy.index.DirichletPrior(params[0]),
+            'alpha': .5,
+            'lambda': .5,
+            'k': 10,
+            'max_terms': 50
+        }
+        return metapy.index.KLDivergencePRF(**kwargs)
+    elif ranker_str == 'kldprf_jm':
+        kwargs = {
+            'fwd': fwd_idx,
+            'lm_ranker': metapy.index.JelinekMercer(params[0]),
             'alpha': .5,
             'lambda': .5,
             'k': 10,
@@ -96,9 +103,9 @@ if __name__ == '__main__':
 
     ranker_str = 'bm25'
 
-    if ranker_str == 'dp':
+    if ranker_str in ['dp', 'kldprf_dp']:
         params = [91.82]
-    elif ranker_str == 'jm':
+    elif ranker_str in ['jm', 'kldprf_jm']:
         params = [0.38]
     elif ranker_str == 'ad':
         params = [1.31]
