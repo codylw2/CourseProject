@@ -101,8 +101,8 @@ if __name__ == '__main__':
     with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
         doc_list = json.load(json_f)['uid_order']
 
-    # print('removing old idx...')
-    # shutil.rmtree(os.path.join('idx'))
+    print('removing old idx...')
+    shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
@@ -117,7 +117,8 @@ if __name__ == '__main__':
     elif ranker_str == 'ad':
         params = [1.31]
     elif ranker_str in ['bm25', 'kldprf_bm25', 'rocchio']:
-        params = [2.3, .84, 0]
+        # params = [2.3, .84, 0]
+        params = [0.1, 0.95, 0]
     else:
         raise Exception('Unknown ranker')
 
