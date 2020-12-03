@@ -57,9 +57,17 @@ def gen_dat(doc_dict, doc_list, variants):
 
     procs = list()
     with Pool(12) as p:
+        max_len = 0
+        max_uid = ''
         for uid in doc_list:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']])
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract']]) # title, abstract, intro, text
+            if len(comb_txt.split(' ')) > max_len:
+                max_len = len(comb_txt.split(' '))
+                max_uid = uid
             procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
+
+        print('max_len: {}'.format(max_len))
+        print('max_uid: {}'.format(max_uid))
 
         for proc_idx, proc in enumerate(procs):
             text, uid = proc.get()
