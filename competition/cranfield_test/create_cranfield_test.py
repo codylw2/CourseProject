@@ -29,7 +29,8 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            query_text = queries[str(key)]['query']+queries[str(key)]['question']+queries[str(key)]['narrative']  # query, question, narrative
+            query_text = queries[str(key)]['query']
+            # query_text = queries[str(key)]['query']+queries[str(key)]['question']+queries[str(key)]['narrative']  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
 
@@ -39,9 +40,9 @@ def update_text(text, uid, variants):
     re_http = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
     text = re_http.sub('', text)
 
-    comp_variants = [re.compile(v) for v in variants]
-    for re_var in comp_variants:
-        text = re_var.sub('coronavirus', text)
+    # comp_variants = [re.compile(v) for v in variants]
+    # for re_var in comp_variants:
+    #     text = re_var.sub('coronavirus', text)
 
     # basic_tokenizer = tokenization.BasicTokenizer(do_lower_case=True, split_on_punc=True)
     # tokens = basic_tokenizer.tokenize(text)
@@ -57,7 +58,7 @@ def gen_dat(doc_dict, doc_list, variants):
     procs = list()
     with Pool(12) as p:
         for uid in doc_list:
-            comb_txt = doc_dict['uid'][uid]['title'] + doc_dict['uid'][uid]['text']
+            comb_txt = doc_dict['uid'][uid]['title'] + doc_dict['uid'][uid]['abstract'] + doc_dict['uid'][uid]['intro']
             procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
 
         for proc_idx, proc in enumerate(procs):

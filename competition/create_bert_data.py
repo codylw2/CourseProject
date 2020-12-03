@@ -102,7 +102,7 @@ def determine_docs(run_type, uids):
                 'pmcid': row['pmcid'],
                 's2id': s2id,
                 'date': process_publish_time(str(row['publish_time']), re_date, re_year),
-                'pdf_json_files': row.get('pdf_json_files', '').split(';') if str(row.get('pdf_json_files', 'nan')) != 'nan' else None,
+                'pdf_json_files': [d.strip() for d in row.get('pdf_json_files', '').split(';')] if str(row.get('pdf_json_files', 'nan')) != 'nan' else None,
                 'pmc_json_files': row.get('pmc_json_files', None) if str(row.get('pmc_json_files', 'nan')) != 'nan' else None
             }
 
@@ -123,9 +123,9 @@ def determine_docs(run_type, uids):
                 doc_dict['uid'][uid]['pmcid'] = row['pmcid']
 
             if doc_dict['uid'][uid]['pdf_json_files']:
-                doc_dict['uid'][uid]['pdf_json_files'].extend(row.get('pdf_json_files', '').split(';') if str(row.get('pdf_json_files', 'nan')) != 'nan' else [])
+                doc_dict['uid'][uid]['pdf_json_files'].extend([d.strip() for d in row.get('pdf_json_files', '').split(';')] if str(row.get('pdf_json_files', 'nan')) != 'nan' else [])
             else:
-                doc_dict['uid'][uid]['pdf_json_files'] = row.get('pdf_json_files', '').split(';') if str(row.get('pdf_json_files', 'nan')) != 'nan' else None
+                doc_dict['uid'][uid]['pdf_json_files'] = [d.strip() for d in row.get('pdf_json_files', '').split(';')] if str(row.get('pdf_json_files', 'nan')) != 'nan' else None
 
     print(len(doc_list))
     print(len(doc_dict['uid'].keys()))
@@ -140,23 +140,51 @@ def determine_text(src_list, idx=0):
         with open(json_path, 'r') as j_f:
             doc = json.load(j_f)
             text_list = list()
+            abstract_list = list()
+            intro_list = list()
 
-            for section_nm in ['abstract', 'body_text', 'ref_entries']:
+            for section_nm in ['abstract']:
                 section = doc.get(section_nm, '')
                 if section:
                     if isinstance(section, list):
                         for sub_section in section:
-                            text_list.append(sub_section['text'])
+                            abstract_list.append(sub_section['text'])
+                    elif section_nm == 'ref_entries':
+                        for key in section.keys():
+                            abstract_list.append(section[key]['text'])
+                    else:
+                        abstract_list.append(section['text'])
+
+            for section_nm in ['body_text', 'ref_entries']:
+                section = doc.get(section_nm, '')
+                if section:
+                    if isinstance(section, list):
+                        for sub_section in section:
+                            if 'intro' in sub_section['section']:
+                                intro_list.append(sub_section['text'])
+                            elif 'abstract' in sub_section['section']:
+                                abstract_list.append(sub_section['text'])
+                            else:
+                                text_list.append(sub_section['text'])
                     elif section_nm == 'ref_entries':
                         for key in section.keys():
                             text_list.append(section[key]['text'])
                     else:
-                        text_list.append(section['text'])
+                        if 'intro' in section['section']:
+                            intro_list.append(section['text'])
+                        elif 'abstract' in section['section']:
+                            abstract_list.append(section['text'])
+                        else:
+                            text_list.append(section['text'])
+            abstract = ' '.join(abstract_list)
+            intro = ' '.join(intro_list)
             text = ' '.join(text_list)
     else:
+        abstract = ''
+        intro = ''
         text = ''
 
-    return text.replace('\r', '').replace('\n', ' ')
+    return abstract.replace('\r', '').replace('\n', ' '), intro.replace('\r', '').replace('\n', ' '), text.replace('\r', '').replace('\n', ' '),
 
 
 def populate_doc_text(doc_dict, doc_list, run_type):
@@ -180,19 +208,21 @@ def populate_doc_text(doc_dict, doc_list, run_type):
         if json_list:
             src_list.extend([os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'documents', j_path) for j_path in json_list])
 
+        abstract = ''
+        intro = ''
         text = ''
         doc_idx = 0
         while src_list and doc_idx < len(src_list):
-            text = determine_text(src_list, doc_idx)
+            abstract, intro, text = determine_text(src_list, doc_idx)
 
-            if len(text.split()) > 3:
+            if len(abstract.split()) > 3 or len(intro.split()) > 3:
                 break
             else:
                 text = ''
                 doc_idx += 1
 
-        if not text and len(doc_dict['uid'][uid]['abstract'].split()) > 3:
-            text = doc_dict['uid'][uid]['abstract']
+        # if not text and len(doc_dict['uid'][uid]['abstract'].split()) > 3:
+        #     text = doc_dict['uid'][uid]['abstract']
         # elif not text:
         #     count_empty += 1
         #     doc_dict['uid'].pop(uid, None)
@@ -205,12 +235,14 @@ def populate_doc_text(doc_dict, doc_list, run_type):
         #     else:
         #         text_max_doc = src_list[doc_idx-1]
 
-        text = re_http.sub('', text)
-        for re_var in comp_variants:
-            text = re_var.sub('coronavirus', text)
+        # text = re_http.sub('', text)
+        # for re_var in comp_variants:
+        #     text = re_var.sub('coronavirus', text)
 
+        doc_dict['uid'][uid]['abstract'] = abstract if abstract and not doc_dict['uid'][uid]['abstract'] else doc_dict['uid'][uid]['abstract']
+        doc_dict['uid'][uid]['intro'] = intro
         doc_dict['uid'][uid]['text'] = text
-        del(doc_dict['uid'][uid]['abstract'])
+        # del(doc_dict['uid'][uid]['abstract'])
         del(doc_dict['uid'][uid]['pmcid'])
         del(doc_dict['uid'][uid]['pmc_json_files'])
         del(doc_dict['uid'][uid]['pdf_json_files'])

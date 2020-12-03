@@ -106,20 +106,20 @@ if __name__ == '__main__':
     with open(os.path.join('cranfield', 'cranfield-dat.json'), 'r') as json_f:
         doc_list = json.load(json_f)['uid_order']
 
-    # print('removing old idx...')
-    # if os.path.exists(os.path.join('idx')):
-    #     shutil.rmtree(os.path.join('idx'))
+    print('removing old idx...')
+    if os.path.exists(os.path.join('idx')):
+        shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)
     fwd_idx = metapy.index.make_forward_index(cfg)
 
-    ranker_str = 'rocchio'
+    ranker_str = 'bm25'
     if ranker_str == 'bm25':
         params = list()
-        for i in range(1, 30):
+        for i in range(1, 16):
             for j in range(1, 101):
-                params.append([i*.1, j*.01, 0])
+                params.append([i*.1+.8, j*.01, 0])
         prev_ndcg = 0
         best_params = [0, 0, 0]
     elif ranker_str == 'rocchio':
