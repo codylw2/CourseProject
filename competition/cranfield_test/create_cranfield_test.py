@@ -2,6 +2,7 @@ import os
 import json
 import re
 import time
+import datetime
 
 from multiprocessing import Pool
 from official.nlp.bert import tokenization
@@ -52,6 +53,7 @@ def update_text(text, uid, variants):
 
 
 def gen_dat(doc_dict, doc_list, variants):
+    print('generating dat...')
     outfile = open(os.path.join('cranfield', 'cranfield.dat'), 'w', encoding='utf-8')
     orderfile = open(os.path.join('cranfield', 'cranfield-dat.json'), 'w', encoding='utf-8')
 
@@ -59,12 +61,20 @@ def gen_dat(doc_dict, doc_list, variants):
     with Pool(12) as p:
         max_len = 0
         max_uid = ''
+        min_date = datetime.datetime(2015, 1, 1)
         for uid in doc_list:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
-            if len(comb_txt.split(' ')) > max_len:
-                max_len = len(comb_txt.split(' '))
-                max_uid = uid
-            procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
+
+            curr_date = None
+            if doc_dict['uid'][uid]['date']:
+                curr_date = datetime.datetime.strptime(doc_dict['uid'][uid]['date'], '%d/%m/%Y')
+
+            if curr_date and curr_date >= min_date:
+                comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
+                if len(comb_txt.split(' ')) > max_len:
+                    max_len = len(comb_txt.split(' '))
+                    max_uid = uid
+                procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
+
 
         print('max_len: {}'.format(max_len))
         print('max_uid: {}'.format(max_uid))

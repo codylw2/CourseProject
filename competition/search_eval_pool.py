@@ -180,6 +180,7 @@ if __name__ == '__main__':
             if prev_ndcg < ncdg:
                 prev_ndcg = ncdg
                 best_params = params
+                print('ranker: {2} : PARAM {0} : NDCG {1}'.format(best_params, prev_ndcg, ranker_str))
 
     print('ranker: {2} : PARAM {0} : NDCG {1}'.format(best_params, prev_ndcg, ranker_str))
     print('script ran in {} seconds'.format(time.time()-t_start))

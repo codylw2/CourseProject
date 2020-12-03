@@ -29,7 +29,7 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            query_text = queries[str(key)]['query']
+            query_text = queries[str(key)]['question']
             # query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
@@ -57,9 +57,27 @@ def gen_dat(doc_dict, doc_list, variants):
 
     procs = list()
     with Pool(12) as p:
+        min_date = None
+        max_date = None
         for uid in doc_list:
             comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
+            curr_date = doc_dict['uid'][uid]['date']
             procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
+
+            if min_date:
+                if curr_date and curr_date < min_date:
+                    min_date = curr_date
+            elif curr_date:
+                min_date = curr_date
+            if max_date:
+                if curr_date and curr_date > max_date:
+                    max_date = curr_date
+            elif curr_date:
+                max_date = curr_date
+
+        print(min_date)
+        print(max_date)
+
 
         for proc_idx, proc in enumerate(procs):
             text, uid = proc.get()
