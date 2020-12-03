@@ -30,7 +30,7 @@ class BM25p(metapy.index.RankingFunction):
         """
         idf = math.log((sd.num_docs+1)/sd.doc_count)
         t_sc = (sd.doc_term_count*(self.k1+1))/(sd.doc_term_count+self.k1*(1-self.b+self.b*sd.doc_size/sd.avg_dl))+self.delta
-        return idf*t_sc
+        return sd.query_term_weight*idf*t_sc
 
 
 def load_ranker(cfg_file, ranker_str, params, fwd_idx):
