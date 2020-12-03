@@ -101,7 +101,7 @@ def rank_results(ranker, query_file, idx, doc_list):
 
             for score in sorted(list(score_dict.keys()), reverse=True):
                 for doc_id in sorted(score_dict[score]):
-                    txt.write('{} {} {}\n'.format(query_num+1, doc_id, score*4))
+                    txt.write('{} {} {}\n'.format(query_num+1, doc_id, score))
 
     return
 

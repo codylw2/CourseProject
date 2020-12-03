@@ -336,7 +336,7 @@ if __name__ == '__main__':
             del qrels
 
         doc_dict, doc_list = determine_docs(run_type, uids)
-        # doc_dict = populate_doc_text(doc_dict, doc_list, run_type)
+        doc_dict = populate_doc_text(doc_dict, doc_list, run_type)
         # doc_dict = tokenize_docs(doc_dict, vocab_file)
         write_json(doc_dict, f'{run_type}_docs.json')
         del doc_dict
