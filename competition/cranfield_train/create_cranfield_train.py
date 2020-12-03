@@ -58,7 +58,7 @@ def gen_dat(doc_dict, doc_list, variants):
     procs = list()
     with Pool(12) as p:
         for uid in doc_list:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract']]) # title, abstract, intro, text
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
             procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
 
         for proc_idx, proc in enumerate(procs):
