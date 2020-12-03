@@ -117,9 +117,9 @@ if __name__ == '__main__':
     ranker_str = 'bm25'
     if ranker_str == 'bm25':
         params = list()
-        for i in range(1, 16):
+        for i in range(0, 16):
             for j in range(1, 101):
-                params.append([i*.1+.8, j*.01, 0])
+                params.append([i*.1+1.2, j*.01, 0])
         prev_ndcg = 0
         best_params = [0, 0, 0]
     elif ranker_str == 'rocchio':

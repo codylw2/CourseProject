@@ -29,7 +29,8 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            query_text = queries[str(key)]['query'].replace('?', '')  # query, question, narrative
+            query_text = queries[str(key)]['query']
+            # query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
 
@@ -57,7 +58,7 @@ def gen_dat(doc_dict, doc_list, variants):
     procs = list()
     with Pool(12) as p:
         for uid in doc_list:
-            comb_txt = doc_dict['uid'][uid]['title'] + doc_dict['uid'][uid]['abstract'] + doc_dict['uid'][uid]['intro']
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
             procs.append(p.apply_async(update_text, (comb_txt, uid, variants)))
 
         for proc_idx, proc in enumerate(procs):

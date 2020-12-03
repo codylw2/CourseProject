@@ -60,7 +60,7 @@ def gen_dat(doc_dict, doc_list, variants):
         max_len = 0
         max_uid = ''
         for uid in doc_list:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract']]) # title, abstract, intro, text
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
             if len(comb_txt.split(' ')) > max_len:
                 max_len = len(comb_txt.split(' '))
                 max_uid = uid

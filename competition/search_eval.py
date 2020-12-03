@@ -119,7 +119,9 @@ if __name__ == '__main__':
     elif ranker_str in ['bm25', 'kldprf_bm25', 'rocchio']:
         # params = [2.3, .84, 0]
         # params = [0.1, 0.95, 0]
-        params = [0.9, 0.52, 0]
+        # params = [0.9, 0.52, 0]
+        params = [1.2, 0.37, 0]
+        # params = [1.6, 0.75, 0]
     else:
         raise Exception('Unknown ranker')
 
