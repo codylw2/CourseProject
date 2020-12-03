@@ -40,9 +40,9 @@ def update_text(text, uid, variants):
     re_http = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
     text = re_http.sub('', text)
 
-    # comp_variants = [re.compile(v) for v in variants]
-    # for re_var in comp_variants:
-    #     text = re_var.sub('coronavirus', text)
+    comp_variants = [re.compile(v) for v in variants]
+    for re_var in comp_variants:
+        text = re_var.sub('covid-19', text)
 
     # basic_tokenizer = tokenization.BasicTokenizer(do_lower_case=True, split_on_punc=True)
     # tokens = basic_tokenizer.tokenize(text)

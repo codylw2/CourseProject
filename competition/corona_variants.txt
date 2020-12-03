@@ -47,3 +47,5 @@ cov_sars-2
 cov_sars2
 human-sars-cov2
 covid
+coronavirus
+corona virus
