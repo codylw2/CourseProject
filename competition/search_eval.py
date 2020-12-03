@@ -126,7 +126,8 @@ if __name__ == '__main__':
         doc_list = json.load(json_f)['uid_order']
 
     print('removing old idx...')
-    shutil.rmtree(os.path.join('idx'))
+    if os.path.exists(os.path.join('idx')):
+        shutil.rmtree(os.path.join('idx'))
 
     print('making inverted index...')
     idx = metapy.index.make_inverted_index(cfg)

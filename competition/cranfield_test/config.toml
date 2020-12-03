@@ -10,7 +10,21 @@ query-judgements = "cranfield-qrels.txt"
 [[analyzers]]
 method = "ngram-word"
 ngram = 1
-filter = "default-unigram-chain"
+    [[analyzers.filter]]
+    type="icu-tokenizer"
+
+    [[analyzers.filter]]
+    type="lowercase"
+
+    [[analyzers.filter]]
+    type="alpha"
+
+    [[analyzers.filter]]
+    type="porter2-filter"
+
+    [[analyzers.filter]]
+    type="list"
+    file="stopwords.txt"
 
 [query-runner]
 query-path = "cranfield-queries.txt"
