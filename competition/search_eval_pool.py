@@ -11,6 +11,30 @@ from multiprocessing import Pool
 from functools import partial
 
 
+class BM25p(metapy.index.RankingFunction):
+    """
+    Create a new ranking function in Python that can be used in MeTA.
+    """
+    def __init__(self, k1=1.2, b=.75, delta=.8):
+        self.k1 = k1
+        self.b = b
+        self.delta = delta
+        # You *must* call the base class constructor here!
+        super(BM25p, self).__init__()
+
+    def score_one(self, sd):
+        """
+        You need to override this function to return a score for a single term.
+        For fields available in the score_data sd object,
+        @see https://meta-toolkit.org/doxygen/structmeta_1_1index_1_1score__data.html
+        """
+        idf = math.log((sd.num_docs+1)/sd.doc_count)
+        t_sc = (sd.doc_term_count*(self.k1+1))/(sd.doc_term_count+self.k1*(1-self.b+self.b*sd.doc_size/sd.avg_dl))+self.delta
+        # return (self.param + sd.doc_term_count) / (self.param * sd.doc_unique_terms + sd.doc_size)
+        # tfn = sd.doc_term_count*math.log2(1+sd.avg_dl/sd.doc_size)
+        return idf*t_sc
+
+
 def load_ranker(cfg_file, ranker_str, params, fwd_idx):
     """
     Use this function to return the Ranker object to evaluate, e.g. return InL2Ranker(some_param=1.0)
@@ -19,6 +43,8 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
     """
     if ranker_str == 'bm25':
         return metapy.index.OkapiBM25(*params)
+    elif ranker_str == 'bm25p':
+        return BM25p(*params)
     elif ranker_str == 'dp':
         return metapy.index.DirichletPrior(*params)
     elif ranker_str == 'jm':
@@ -114,12 +140,20 @@ if __name__ == '__main__':
     idx = metapy.index.make_inverted_index(cfg)
     fwd_idx = metapy.index.make_forward_index(cfg)
 
-    ranker_str = 'bm25'
+    ranker_str = 'bm25p'
     if ranker_str == 'bm25':
         params = list()
         for i in range(0, 20):
             for j in range(1, 101):
                 params.append([i*.1, j*.01, 0])
+        prev_ndcg = 0
+        best_params = [0, 0, 0]
+    elif ranker_str == 'bm25p':
+        params = list()
+        for i in range(0, 20):
+            for j in range(1, 101):
+                for k in range(0, 11):
+                    params.append([i*.1, j*.01, k*.1])
         prev_ndcg = 0
         best_params = [0, 0, 0]
     elif ranker_str == 'rocchio':
