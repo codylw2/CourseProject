@@ -40,9 +40,9 @@ def update_text(text, uid, variants):
     re_http = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
     text = re_http.sub('', text)
 
-    comp_variants = [re.compile(v) for v in variants]
-    for re_var in comp_variants:
-        text = re_var.sub('covid-19', text)
+    # comp_variants = [re.compile(v) for v in variants]
+    # for re_var in comp_variants:
+    #     text = re_var.sub('covid-19', text)
 
     # basic_tokenizer = tokenization.BasicTokenizer(do_lower_case=True, split_on_punc=True)
     # tokens = basic_tokenizer.tokenize(text)
@@ -60,7 +60,7 @@ def gen_dat(doc_dict, doc_list, variants):
         max_len = 0
         max_uid = ''
         for uid in doc_list:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract']]) # title, abstract, intro, text
             if len(comb_txt.split(' ')) > max_len:
                 max_len = len(comb_txt.split(' '))
                 max_uid = uid
