@@ -86,16 +86,9 @@ def load_ranker(cfg_file, ranker_str, params, fwd_idx):
 def rank_results(ranker, query_file, idx, doc_list):
     top_k = 1000
     with open(os.path.join(script_dir, '..', 'predictions.txt'), 'w') as txt:
-        tok = metapy.analyzers.ICUTokenizer()
-        tok = metapy.analyzers.LowercaseFilter(tok)
-        tok = metapy.analyzers.AlphaFilter(tok)
-        tok = metapy.analyzers.Porter2Filter(tok)
-        tok = metapy.analyzers.ListFilter(tok, r"E:\coursera\Fall2020\cs410\CourseProject\competition\cranfield_test\stopwords.txt", metapy.analyzers.ListFilter.Type.Reject)
-
         query = metapy.index.Document()
         for query_num, line in enumerate(query_file):
-            tok.set_content(line.strip())
-            query.content(' '.join([t for t in tok if t not in ['<s>', '</s>']]))
+            query.content(line.strip())
             results = ranker.score(idx, query, top_k)
 
             score_dict = dict()
