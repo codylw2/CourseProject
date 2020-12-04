@@ -20,9 +20,6 @@ ngram = 1
     type="alpha"
 
     [[analyzers.filter]]
-    type="english-normalizer"
-
-    [[analyzers.filter]]
     type="porter2-filter"
 
     [[analyzers.filter]]

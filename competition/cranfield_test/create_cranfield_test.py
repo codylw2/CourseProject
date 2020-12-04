@@ -30,8 +30,8 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            query_text = queries[str(key)]['query']
-            # query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
+            # query_text = queries[str(key)]['query']
+            query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
 
