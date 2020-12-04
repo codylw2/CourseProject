@@ -30,8 +30,8 @@ def load_variants():
 def write_queries(queries, variants):
     with open('cranfield-queries.txt', 'w') as txt:
         for key in sorted([int(k) for k in queries.keys()]):
-            # query_text = queries[str(key)]['query']
-            query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
+            query_text = queries[str(key)]['query']
+            # query_text = ' '.join([queries[str(key)][subkey] for subkey in ['query', 'question', 'narrative']])  # query, question, narrative
             query_text, _ = update_text(query_text, None, variants)
             txt.writelines(query_text + '\n')
 
@@ -69,7 +69,7 @@ def gen_dat(doc_dict, doc_list, variants):
             #     curr_date = datetime.datetime.strptime(doc_dict['uid'][uid]['date'], '%d/%m/%Y')
             #
             # if curr_date and curr_date >= min_date:
-            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['abstract', 'intro']]) # title, abstract, intro, text
+            comb_txt = ' '.join([doc_dict['uid'][uid][key] for key in ['title', 'abstract', 'intro']]) # title, abstract, intro, text
             if len(comb_txt.split(' ')) > max_len:
                 max_len = len(comb_txt.split(' '))
                 max_uid = uid

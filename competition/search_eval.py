@@ -150,7 +150,8 @@ if __name__ == '__main__':
         params = [0.25, 0.35, 0]  # params 6
     elif ranker_str == 'bm25p':
         # params = [0.6, 0.39, 0.7]  # params 1
-        params = [0.4, 0.36, 0.7]  # params 2
+        # params = [0.4, 0.36, 0.7]  # params 2
+        params = [1.0, 0.38, 1.0]  # params 3
     else:
         raise Exception('Unknown ranker')
 
