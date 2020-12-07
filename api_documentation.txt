@@ -80,7 +80,7 @@ API:
     do_lower_case: ensure all query and document strings are lowercase
 
 ./competition/tfr_custom/tfr_predict.py
-Purpose: To score the documents in the test dataset against the queries in the test dataset
+Purpose: To score the documents in the test dataset against the queries in the test dataset and output a predictions file
 API:
     vocab_file: The file containing the vocabulary to be used when tokenizing a text
     sequence_length: The max length of any individual query or document
@@ -91,6 +91,7 @@ API:
     output_file: The file that will contain the scores
     model_path: The path to the saved model for use in predictions
     docs_at_once: The maximum number of documents to score at once
+    rerank_file: The input file consisting of previous rankings that will be reranked with the tensorflow model
     do_lower_case: ensure all query and document strings are lowercase
 
 

@@ -226,6 +226,8 @@ class TFRBertUtilJSON(object):
 
                     print('ran query {} in {} seconds'.format(q_idx, str(time.time() - t_start)))
 
+            tfrBertClient.exportRankingOutput(rerank_file, ranking_results)
+
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_exception(exc_type, exc_value, exc_traceback)
@@ -258,11 +260,17 @@ class TFRBertClient(object):
             rankingProblemsOut.append(self.generatePredictions(rankingProblemsELWC[idx], rankingProblemsJSON[idx]))
         return rankingProblemsOut
 
-    def exportRankingOutput(self, filenameJSONOut, rankingProblemOutputJSON):
-        print(" * exportRankingOutput(): Exporting scores to JSON (" + filenameJSONOut + ")")
-        # Output JSON to file
-        with open(filenameJSONOut, 'w') as outfile:
-            json.dump(rankingProblemOutputJSON, outfile)
+    def exportRankingOutput(self, rerank_file, ranking_results):
+        print(" * exportRankingOutput(): Exporting scores to predictions file (" + rerank_file + ")")
+
+        with open(rerank_file, 'w') as f_txt:
+            for q_idx, all_docs in ranking_results.items():
+                all_docs.sort(key=lambda x: x['score'], reverse=True)
+                for doc in all_docs[:1000]:
+                    uid = doc['d_uid']
+                    score = doc['score']
+                    f_txt.write('{} {} {}\n'.format(q_idx, uid, score))
+
         return
 
     def convert_scores_to_predictions(self, filenameJSONOut):
