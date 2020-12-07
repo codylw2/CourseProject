@@ -140,7 +140,15 @@ class TFRBertUtilJSON(object):
         else:
             return text_chunks
 
-    def convert_json_to_elwc(self, filenameQueryJsonIn, query_key, filenameDocJsonIn, filenameJsonOut, docsAtOnce):
+    def convert_json_to_elwc(self, filenameQueryJsonIn, query_key, filenameDocJsonIn, filenameJsonOut, docsAtOnce, rerank_file):
+
+        previous_pred = dict()
+        with open(rerank_file, 'r') as f_rerank:
+            for line in f_rerank.readlines():
+                q_idx, uid, score = line.split()
+                if int(q_idx) not in previous_pred.keys():
+                    previous_pred[int(q_idx)] = list()
+                previous_pred[int(q_idx)].append(uid)
 
         tfrBertClient = TFRBertClient(servingSignatureName='predict', modelPath=self.model_path)
 
@@ -150,11 +158,6 @@ class TFRBertUtilJSON(object):
                 queries = json.load(query_file)
                 documents = json.load(doc_file)
                 docs_at_once = docsAtOnce
-                docRel = 0  # required value, not used in ranking
-
-                uid_list = documents['uid'].keys()
-                last_doc = list(uid_list)[-1]
-                num_docs = len(uid_list)
 
                 if os.path.exists(filenameJsonOut):
                     with open(filenameJsonOut) as results_file:
@@ -174,6 +177,10 @@ class TFRBertUtilJSON(object):
                     d_uid_list = list()
 
                     pred_count = 0
+
+                    uid_list = previous_pred[int(q_idx)]
+                    last_doc = list(uid_list)[-1]
+                    num_docs = len(uid_list)
 
                     if max_q_idx and int(q_idx) <= max_q_idx:
                         continue
@@ -231,13 +238,15 @@ class TFRBertClient(object):
         self.servingSignatureName = servingSignatureName
         self.predict_fn = tf.saved_model.load(modelPath).signatures[servingSignatureName]
 
+    def _get_latest_model(self, model_path):
+        return sorted([int(d) for d in os.listdir(model_path) if os.path.isdir(os.path.join(model_path, d))], reverse=True)[0]
+
     def generatePredictions(self, rankingProblemELWC, rankingProblemJSONIn):
         rankingProblemJSON = copy.deepcopy(rankingProblemJSONIn)
 
         rankingProblemTensor = tf.convert_to_tensor(rankingProblemELWC.SerializeToString(), dtype=tf.string)
         response = self.predict_fn(tf.expand_dims(rankingProblemTensor, axis=0))
         docScores = response['output'].numpy().tolist()[0]
-        print(docScores)
         for docIdx in range(0, len(rankingProblemJSON['documents'])):
             rankingProblemJSON['documents'][docIdx]['score'] = docScores[docIdx]
 
@@ -307,6 +316,7 @@ def main():
     parser.add_argument("--output_file", type=str, required=True, help="JSON output filename (e.g. test.scoresOut.json)")
     parser.add_argument("--model_path", type=str, required=True, help='')
     parser.add_argument("--docs_at_once", type=int, default=500, help='')
+    parser.add_argument("--rerank_file", type=str, required=True, help='')
     parser.add_argument("--do_lower_case", action="store_true", help="Set for uncased models, otherwise do not include")
 
     args = parser.parse_args()
@@ -320,7 +330,7 @@ def main():
     bert_helper_json = TFRBertUtilJSON(bert_helper, args.model_path)
 
     # Convert the JSON of input ranking problems into ELWC
-    bert_helper_json.convert_json_to_elwc(args.query_file, args.query_key, args.doc_file, args.output_file, int(args.docs_at_once))
+    bert_helper_json.convert_json_to_elwc(args.query_file, args.query_key, args.doc_file, args.output_file, int(args.docs_at_once), args.rerank_file)
 
     # Display total execution time
     print(" * Total execution time: " + secondsToStr(time.time() - startTime))

@@ -76,7 +76,7 @@ API:
     doc_file: The json file that contains all of the documents
     output_train_file: The tfrecord file to be used for training
     output_eval_file: The tfrecord file to be used for evaluation
-    list_size: The max number of documents to score per query
+    list_size: The maximum number of documents to score per query
     do_lower_case: ensure all query and document strings are lowercase
 
 ./competition/tfr_custom/tfr_predict.py
