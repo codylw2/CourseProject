@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import os
 import json
@@ -10,13 +11,15 @@ from official.nlp.bert import tokenization
 from multiprocessing import Pool
 
 
-def load_variants():
-    with open(os.path.join(script_dir, 'corona_variants.txt'), 'r') as f_txt:
-        return [line.strip('\n') for line in f_txt.readlines()]
+def load_variants(input_dir):
+    f_variants = os.path.join(input_dir, 'corona_variants.txt')
+    if os.path.exists(f_variants):
+        with open(f_variants, 'r') as f_txt:
+            return [line.strip('\n') for line in f_txt.readlines()]
 
 
-def parse_queries(script_dir, run_type):
-    xmlfile = os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'queries.xml')
+def parse_queries(input_dir, run_type):
+    xmlfile = os.path.join(input_dir, f'{run_type}', 'queries.xml')
     tree = ET.parse(xmlfile)
     root = tree.getroot()
     query_dict = dict()
@@ -28,14 +31,11 @@ def parse_queries(script_dir, run_type):
             'narrative': query.find('narrative').text
         }
 
-    # with open(os.path.join(script_dir, 'queries.json'), 'w') as json_f:
-    #     json.dump(query_dict, json_f)
-
     return query_dict
 
 
-def parse_qrels(script_dir, run_type):
-    fname = os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'qrels.txt')
+def parse_qrels(input_dir, run_type):
+    fname = os.path.join(input_dir, f'{run_type}', 'qrels.txt')
     qrels = dict()
     uids = set()
     with open(fname, 'r') as f_txt:
@@ -49,8 +49,8 @@ def parse_qrels(script_dir, run_type):
     return qrels, uids
 
 
-def write_json(queries, f_name, indent=False):
-    with open(os.path.join(script_dir, f_name), 'w') as json_f:
+def write_json(queries, output_dir, f_name, indent=False):
+    with open(os.path.join(output_dir, f_name), 'w') as json_f:
         if indent:
             json.dump(queries, json_f, indent=4)
         else:
@@ -66,8 +66,8 @@ def process_publish_time(pub_time_str, re_date, re_year):
         return ''
 
 
-def determine_docs(run_type, uids):
-    metadata_csv = os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'documents', 'metadata.csv')
+def determine_docs(run_type, uids, input_dir):
+    metadata_csv = os.path.join(input_dir, f'{run_type}', 'documents', 'metadata.csv')
     df = pd.read_csv(metadata_csv, dtype=str)
     rows = df.to_dict('records')
 
@@ -187,7 +187,8 @@ def determine_text(src_list, idx=0):
     return abstract.replace('\r', '').replace('\n', ' '), intro.replace('\r', '').replace('\n', ' '), text.replace('\r', '').replace('\n', ' '),
 
 
-def populate_doc_text(doc_dict, doc_list, run_type):
+def populate_doc_text(args, doc_dict, doc_list, run_type):
+    input_dir = args.input_dir
     text_max_len = 0
     text_max_doc = ''
     count_empty = 0
@@ -195,18 +196,18 @@ def populate_doc_text(doc_dict, doc_list, run_type):
     # remove url links
     re_http = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
 
-    comp_variants = [re.compile(v) for v in load_variants()]
+    comp_variants = [re.compile(v) for v in load_variants(input_dir)] if args.variant_file else []
 
     for uid in doc_list:
         src_list = list()
         json_path = doc_dict['uid'][uid]['pmc_json_files']
         if json_path:
-            json_path = os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'documents', json_path)
+            json_path = os.path.join(input_dir, f'{run_type}', 'documents', json_path)
             src_list.append(json_path)
 
         json_list = doc_dict['uid'][uid]['pdf_json_files']
         if json_list:
-            src_list.extend([os.path.join(script_dir, f'cranfield_{run_type}', f'{run_type}_files', f'{run_type}', 'documents', j_path) for j_path in json_list])
+            src_list.extend([os.path.join(input_dir, f'{run_type}', 'documents', j_path) for j_path in json_list])
 
         abstract = ''
         intro = ''
@@ -235,9 +236,9 @@ def populate_doc_text(doc_dict, doc_list, run_type):
         #     else:
         #         text_max_doc = src_list[doc_idx-1]
 
-        # text = re_http.sub('', text)
-        # for re_var in comp_variants:
-        #     text = re_var.sub('coronavirus', text)
+        text = re_http.sub('', text)
+        for re_var in comp_variants:
+            text = re_var.sub(args.variant_default, text)
 
         doc_dict['uid'][uid]['abstract'] = abstract if abstract and not doc_dict['uid'][uid]['abstract'] else doc_dict['uid'][uid]['abstract']
         doc_dict['uid'][uid]['intro'] = intro
@@ -291,11 +292,17 @@ def tokenize_queries(queries, vocab_file):
 def tokenize_doc(vocab_file, doc_uid, doc):
     tokenizer = tokenization.FullTokenizer(vocab_file=vocab_file, do_lower_case=True)
 
-    tokens = tokenizer.tokenize(doc['text'])
-    doc['tokens'] = tokens
-
     title_tokens = tokenizer.tokenize(doc['title'])
     doc['title_tokens'] = title_tokens
+
+    title_tokens = tokenizer.tokenize(doc['abstract'])
+    doc['abstract_tokens'] = title_tokens
+
+    title_tokens = tokenizer.tokenize(doc['intro'])
+    doc['intro_tokens'] = title_tokens
+
+    tokens = tokenizer.tokenize(doc['text'])
+    doc['text_tokens'] = tokens
     return doc_uid, doc
 
 
@@ -315,31 +322,42 @@ def tokenize_docs(doc_dict, vocab_file):
 if __name__ == '__main__':
     t_start = time.time()
 
-    script_dir = os.path.dirname(__file__)
-    vocab_file = os.path.join(script_dir, 'bert', 'vocab.txt')
+    parser = argparse.ArgumentParser(description='Process dataset and produce json of processed data')
+    parser.add_argument('--vocab_file', type=str, help='/path/to/bert_model/vocab.txt')
+    parser.add_argument('--variant_file', type=str, help='/path/to/bert_model/corona_variants.txt')
+    parser.add_argument('--variant_default', type=str, default='coronavirus', help='default value to replace corona variants')
+    parser.add_argument('--run_type', type=str, default='train;test', help='the dataset(s) to process, e.g. "train;test"')
+    parser.add_argument('--tokenize', action='store_true', default=True, help='tokenize the queries and docs')
+    parser.add_argument('--input_dir', type=str, default=os.path.dirname(__file__), help='location of dataset(s)')
+    parser.add_argument('--output_dir', type=str, default=os.path.dirname(__file__), help='location to put the created json files')
+    args = parser.parse_args()
 
-    # test = False
-    # run_type = 'test' if test else 'train'
+    if args.tokenize and not args.vocab_file:
+        raise Exception('a vocabulary file is required if tokenization is to happen')
+    elif args.tokenize and args.vocab_file:
+        if not os.path.isfile(args.vocab_file):
+            raise Exception('vocab file does not exist: {0}'.format(args.vocab_file))
 
-    for run_type in ['train', 'test']:
-    # for run_type in ['test']:
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+
+    for run_type in str(args.run_type).split(';'):
         print(run_type)
-        queries = parse_queries(script_dir, run_type)
-        # queries = tokenize_queries(queries, vocab_file)
-        write_json(queries, f'{run_type}_queries.json', True)
+        queries = parse_queries(args.input_dir, run_type)
+        queries = tokenize_queries(queries, args.vocab_file)
+        write_json(queries, args.output_dir, f'{run_type}_queries.json', True)
         del queries
 
         uids = set()
         if run_type == 'train':
-            qrels, uids = parse_qrels(script_dir, run_type)
-            write_json(qrels, f'{run_type}_qrels.json', True)
+            qrels, uids = parse_qrels(args.input_dir, run_type)
+            write_json(qrels, args.output_dir, f'{run_type}_qrels.json', True)
             del qrels
 
-        doc_dict, doc_list = determine_docs(run_type, uids)
-        doc_dict = populate_doc_text(doc_dict, doc_list, run_type)
-        # doc_dict = tokenize_docs(doc_dict, vocab_file)
-        write_json(doc_dict, f'{run_type}_docs.json')
+        doc_dict, doc_list = determine_docs(run_type, uids, args.input_dir)
+        doc_dict = populate_doc_text(args, doc_dict, doc_list, run_type)
+        doc_dict = tokenize_docs(doc_dict, args.vocab_file)
+        write_json(doc_dict, args.output_dir, f'{run_type}_docs.json')
         del doc_dict
 
-    # expected run time 7824.042961835861 seconds
     print('script ran in {} seconds'.format(time.time()-t_start))

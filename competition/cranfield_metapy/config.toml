@@ -1,0 +1,32 @@
+prefix = "."
+stop-words = "stopwords.txt"
+
+uid-order = "cranfield-{run_type}-order.json"
+dataset = "cranfield-{run_type}-{data_key}"
+corpus = "line.toml"
+index = "idx-{run_type}-{data_key}"
+
+query-judgements = "cranfield-qrels.txt"
+
+[[analyzers]]
+method = "ngram-word"
+ngram = 1
+    [[analyzers.filter]]
+    type="icu-tokenizer"
+
+    [[analyzers.filter]]
+    type="lowercase"
+
+    [[analyzers.filter]]
+    type="alpha"
+
+    [[analyzers.filter]]
+    type="porter2-filter"
+
+    [[analyzers.filter]]
+    type="list"
+    file="stopwords.txt"
+
+[query-runner]
+query-path = "cranfield-{run_type}-queries.txt"
+query-id-start = 1

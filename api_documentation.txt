@@ -1,0 +1,103 @@
+1) An overview of the function of the code (i.e., what it does and what it can be used for). 
+2) Documentation of how the software is implemented with sufficient detail so that others can have a basic understanding of your code for future extension or any further improvement. 
+3) Documentation of the usage of the software including either documentation of usages of APIs or detailed instructions on how to install and run a software, whichever is applicable. 
+
+
+Script API Documentation:
+**Unless otherwise specified paths are relative to the root of the repository
+
+./competition/check_covid_variants.py
+Purpose: Check for coronavirus variants in the corpus
+API:
+    variant_file: the file that the coronavirus variants will be output to. File can already exist. Existing variants will be loaded.
+    known_variants: known variants of the coronavirus that exist in the corpus and will be used to determine other variants
+    doc_keys: the keys to use when search the document dictionary for variants
+    run_type: the dataset that will be searched for variants
+    input_dir: the directory that contains the json representation of the datasets to be processed
+    
+./competition/checkpoint_converter.py
+Purpose: Converter BERT checkpoint files from Tensorflow v1 to v2+
+API:
+    bert_config_file: Bert configuration file to define core bert layers.
+    checkpoint_to_convert: Initial checkpoint from a pretrained BERT model core (that is, only the BertModel, with no task heads.)
+    converted_checkpoint_path: Name for the created object-based V2 checkpoint.
+    checkpoint_model_name: The name of the model when saving the checkpoint, i.e., the checkpoint will be saved using: tf.train.Checkpoint(FLAGS.checkpoint_model_name=model).
+    converted_model: Whether to convert the checkpoint to a `BertEncoder` model or a `BertPretrainerV2` model (with mlm but without classification heads).
+    
+./competition/create_bert_data.py
+Purpose: Combine and compile the information from the dataset into and easily loadable json for use by other scripts
+API:
+    vocab_file: The file containing the vocabulary to be used when tokenizing a text
+    variant_file: A file containing variants of the word coronavirus or its equivalents
+    variant_default: The value that will be used to replace all variants in the corpus
+    run_type: The dataset that will be searched for variants
+    tokenize: If use, this will store a tokenized representation of the script in the output json. Must be used with `vocab_file`
+    input_dir: The directory that contains all of the source files for the dataset
+    output_dir: The directory where the json representations of the documents will be stored
+
+
+./competition/cranfield_metapy/create_cranfield.py
+Purpose: Use the json representation of the dataset to create a cranfield dataset for use with metapy
+API:
+    variant_file: A file containing variants of the word coronavirus or its equivalents
+    variant_default: The value that will be used to replace all variants in the corpus
+    run_type: The dataset that will be searched for variants
+    query_keys: The keys that will be used when creating the cranfield query file. If multiple keys are specified, text will be combined.
+    doc_keys: The keys that will be used when creating the cranfield document files. Multiple keys can be specified and multiple keys can be combined into a single document. If creating separate datasets, use a ';' to separate keys. If combining keys for a dataset use a ':' to separate keys:
+    cranfield_dir: The directory to use as a base for generating the cranfield data.
+    input_dir: The directory where the json representations of the documents are stored
+
+./competition/cranfield_metapy/search_eval.py
+Purpose: Rank the documents in the corpus and create the predictions file
+API:
+    config_template: The template file that will be used for creating the configs for each run of the ranker
+    run_type: The dataset that will be searched for variants
+    dat_keys: The keys to use that indicate the name of the cranfield dataset(s). This corresponds to the first key used for every section of 'doc_keys' parameter and the 'create_cranfield.py' script.
+    doc_weights: The weights to use when combining the rankings of multiple datasets.
+    ranker: The ranker to use for ranking the documents. Valid rankers can be found in the script.
+    params: The value(s) for the ranker parameters. Multiple values should be separated by `;`.
+    cranfield_dir: The directory that is the base for the cranfield dataset(s)
+    predict_dir: The directory to contain the predictions file.
+    remove_idx: Delete an existing inverted index and create a new one. If no index exists it will not fail
+
+./competition/cranfield_metapy/search_eval_pool.py
+Purpose: Used to find the optimal parameters for ranking algorithms. Not for production use.
+API: N/A
+
+
+./competition/tfr_custom/tfr_convert_json_to_elwc.py
+Purpose: To convert json data to an elwc formatted tfrecord file for use with model training
+API:
+    vocab_file: The file containing the vocabulary to be used when tokenizing a text
+    sequence_length: The max length of any individual query or document
+    query_file: The json file that contains all of the queries
+    qrel_files: The file containing the training relevance judgements
+    query_key: The type of query that will be used as context for ranking, i.e. (query, question, narrative)
+    doc_file: The json file that contains all of the documents
+    output_train_file: The tfrecord file to be used for training
+    output_eval_file: The tfrecord file to be used for evaluation
+    list_size: The max number of documents to score per query
+    do_lower_case: ensure all query and document strings are lowercase
+
+./competition/tfr_custom/tfr_predict.py
+Purpose: To score the documents in the test dataset against the queries in the test dataset
+API:
+    vocab_file: The file containing the vocabulary to be used when tokenizing a text
+    sequence_length: The max length of any individual query or document
+    query_file: The json file that contains all of the queries
+    qrel_files: The file containing the training relevance judgements
+    query_key: The type of query that will be used as context for ranking, i.e. (query, question, narrative)
+    doc_file: The json file that contains all of the documents
+    output_file: The file that will contain the scores
+    model_path: The path to the saved model for use in predictions
+    docs_at_once: The maximum number of documents to score at once
+    do_lower_case: ensure all query and document strings are lowercase
+
+
+./competition/project_predict.py
+./competition/project_convert_json_to_elwc.py
+./competition/project_client_predict_from_json.py
+
+
+"The name of the model when saving the checkpoint, i.e., the checkpoint will be saved using: tf.train.Checkpoint(FLAGS.checkpoint_model_name=model).")
+
