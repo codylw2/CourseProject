@@ -12,7 +12,7 @@ import traceback
 script_dir = os.path.dirname(__file__)
 sys.path.insert(0, script_dir)
 
-import project_client_predict_from_json
+import bert_client_predict_from_json
 
 from multiprocessing import Pool
 
@@ -44,7 +44,7 @@ class TFRBertUtilJSON(object):
     # Conversion function for converting easily-read JSON into TFR-Bert's ELWC format, and exporting to file
     # In: filename of JSON with ranking problems (see example json files for output)
     # Out: creates TFrecord output file, also returns list of ranking problems read in from JSON
-    def convert_json_to_elwc_export(self, filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn, filenameTrainOut, filenameEvalOut):
+    def convert_json_to_elwc_export(self, filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn, filenameTrainOut, filenameEvalOut, list_size):
         if not os.path.isdir(os.path.dirname(filenameTrainOut)):
             os.makedirs(os.path.dirname(filenameTrainOut))
 
@@ -52,7 +52,7 @@ class TFRBertUtilJSON(object):
             os.makedirs(os.path.dirname(filenameEvalOut))
 
         # Step 1: Convert JSON to ELWC
-        (trainELWCOut, evalELWCOut) = self.convert_json_to_elwc(filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn)
+        (trainELWCOut, evalELWCOut) = self.convert_json_to_elwc(filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn, list_size)
 
         # Step 2: Save ELWC to file
         try:
@@ -76,7 +76,7 @@ class TFRBertUtilJSON(object):
 
         return
 
-    def create_chunks(self, query, title, text, max_size):
+    def create_chunks(self, query, title, text, max_size, max_chunks=None):
         if not text and title:
             text = title.copy()
             title = []
@@ -102,12 +102,15 @@ class TFRBertUtilJSON(object):
             text_chunks.append(title + text[cur_idx:end_idx])
             cur_idx += chunk_size - overlap
 
-        return text_chunks
+        if max_chunks:
+            return text_chunks[:max_chunks]
+        else:
+            return text_chunks
 
     # Conversion function for converting easily-read JSON into TFR-Bert's ELWC format
     # In: JSON filename
     # Out: List of ELWC records, list of original JSON records
-    def convert_json_to_elwc(self, filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn):
+    def convert_json_to_elwc(self, filenameQueryJsonIn, filenameQueryRelJsonIn, query_key, filenameDocJsonIn, list_size):
         trainELWCOut = list()
         evalELWCOut = list()
 
@@ -132,17 +135,20 @@ class TFRBertUtilJSON(object):
 
                 for doc_uid, relevance in qrels[q_idx].items():
                     doc = docs['uid'][doc_uid]
-                    docChunks = self.create_chunks(queryText, doc['title_tokens'], doc['tokens'],
-                                                   self.TFRBertUtilHelper.get_max_seq_length())
+                    text_tokens = list()
+                    text_tokens.extend(doc['abstract_tokens'])
+                    text_tokens.extend(doc['intro_tokens'])
+                    docChunks = self.create_chunks(queryText, doc['title_tokens'], text_tokens, self.TFRBertUtilHelper.get_max_seq_length(), 1)
                     docTexts.extend(docChunks)
                     labels.extend([int(relevance) for _ in docChunks])
 
-                elwcOut = self.TFRBertUtilHelper.convert_to_elwc(queryText, docTexts, labels, label_name="relevance")
+                elwcOutList = self.TFRBertUtilHelper.convert_to_elwc(queryText, docTexts, labels, label_name="relevance", list_size=list_size)
 
-                if int(q_idx) % 2 == 0:
-                    trainELWCOut.append(elwcOut)
-                else:
-                    evalELWCOut.append(elwcOut)
+                for elwc_idx, elwcOut in enumerate(elwcOutList):
+                    if int(elwc_idx) % 2 == 0:
+                        evalELWCOut.append(elwcOut)
+                    else:
+                        trainELWCOut.append(elwcOut)
 
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -164,13 +170,14 @@ def main():
     parser.add_argument("--doc_file", type=str, required=True, help="JSON input filename (e.g. train.json)")
     parser.add_argument("--output_train_file", type=str, required=True, help="ELWC TFrecord filename (e.g. train.elwc.tfrecord)")
     parser.add_argument("--output_eval_file", type=str, required=True, help="ELWC TFrecord filename (e.g. eval.elwc.tfrecord)")
+    parser.add_argument("--list_size", type=int, required=True, help='')
     parser.add_argument("--do_lower_case", action="store_true", help="Set for uncased models, otherwise do not include")
 
     args = parser.parse_args()
     print(" * Running with arguments: " + str(args))
 
     # Create helpers
-    bert_helper = project_client_predict_from_json.create_tfrbert_util_with_vocab(args.sequence_length, args.vocab_file, args.do_lower_case)
+    bert_helper = bert_client_predict_from_json.create_tfrbert_util_with_vocab(args.sequence_length, args.vocab_file, args.do_lower_case)
     bert_helper_json = TFRBertUtilJSON(bert_helper)
 
     # User output
@@ -178,7 +185,7 @@ def main():
     print("")
 
     # Perform conversion of ranking problemsJSON to ELWC
-    bert_helper_json.convert_json_to_elwc_export(args.query_file, args.qrel_file, args.query_key, args.doc_file, args.output_train_file, args.output_eval_file)
+    bert_helper_json.convert_json_to_elwc_export(args.query_file, args.qrel_file, args.query_key, args.doc_file, args.output_train_file, args.output_eval_file, args.list_size)
 
     print("Success.")
 

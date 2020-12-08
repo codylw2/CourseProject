@@ -330,6 +330,7 @@ if __name__ == '__main__':
     parser.add_argument('--tokenize', action='store_true', default=True, help='tokenize the queries and docs')
     parser.add_argument('--input_dir', type=str, default=os.path.dirname(__file__), help='location of dataset(s)')
     parser.add_argument('--output_dir', type=str, default=os.path.dirname(__file__), help='location to put the created json files')
+    parser.add_argument('--output_prefix', type=str, help='descriptop to prefix to datasets')
     args = parser.parse_args()
 
     if args.tokenize and not args.vocab_file:
@@ -342,22 +343,26 @@ if __name__ == '__main__':
         os.makedirs(args.output_dir)
 
     for run_type in str(args.run_type).split(';'):
+        file_pre = run_type
+        if args.output_prefix:
+            file_pre = '{0}_{1}'.format(args.output_prefix, run_type)
+
         print(run_type)
         queries = parse_queries(args.input_dir, run_type)
         queries = tokenize_queries(queries, args.vocab_file)
-        write_json(queries, args.output_dir, f'{run_type}_queries.json', True)
+        write_json(queries, args.output_dir, f'{file_pre}_queries.json', True)
         del queries
 
         uids = set()
         if run_type == 'train':
             qrels, uids = parse_qrels(args.input_dir, run_type)
-            write_json(qrels, args.output_dir, f'{run_type}_qrels.json', True)
+            write_json(qrels, args.output_dir, f'{file_pre}_qrels.json', True)
             del qrels
 
         doc_dict, doc_list = determine_docs(run_type, uids, args.input_dir)
         doc_dict = populate_doc_text(args, doc_dict, doc_list, run_type)
         doc_dict = tokenize_docs(doc_dict, args.vocab_file)
-        write_json(doc_dict, args.output_dir, f'{run_type}_docs.json')
+        write_json(doc_dict, args.output_dir, f'{file_pre}_docs.json')
         del doc_dict
 
     print('script ran in {} seconds'.format(time.time()-t_start))

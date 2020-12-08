@@ -153,8 +153,8 @@ if __name__ == '__main__':
     parser.add_argument('--run_type', type=str, default='train;test', help='the dataset(s) to process, e.g. "train;test"')
     parser.add_argument('--dat_keys', type=str, required=True, help='the dataset(s) to create for processing, e.g. "title;abstract;text"')
     parser.add_argument('--doc_weights', type=str, required=True, help='the weights to apply to each dat_key')
-    parser.add_argument('--ranker', type=str, deafult='bm25+', help='the ranker to use for document ranking')
-    parser.add_argument('--params', type=str, deafult='1.0;0.38;1.0', help='the ranker to use for document ranking')
+    parser.add_argument('--ranker', type=str, default='bm25+', help='the ranker to use for document ranking')
+    parser.add_argument('--params', type=str, default='1.0;0.38;1.0', help='the ranker to use for document ranking')
     parser.add_argument('--cranfield_dir', type=str, default=file_dir,
                         help='the directory that contains the cranfield data')
     parser.add_argument('--predict_dir', type=str, default=os.path.join(file_dir, '..', '..'),
@@ -171,13 +171,13 @@ if __name__ == '__main__':
     with open(cfg_template, 'r') as fin:
         cfg_template_str = fin.read()
 
-    params = [float(p) for p in args.params] if args.params else load_params(args.ranker)
+    params = [float(p) for p in args.params.split(';')] if args.params else load_params(args.ranker)
 
     for run_type in str(args.run_type).split(';'):
         ranking_results = dict()
 
         doc_weights = [float(i) for i in args.doc_weights.split(';')]
-        for d_key in args.dat_keys:
+        for d_key in args.dat_keys.split(';'):
             format_dict = {'run_type': run_type, 'data_key': d_key}
             print("{run_type} : {data_key}".format(**format_dict))
             cfg_dir = 'cranfield-{run_type}-{data_key}'.format(**format_dict)

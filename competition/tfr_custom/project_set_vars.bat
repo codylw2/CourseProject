@@ -1,9 +1,0 @@
-@echo off
-set BERT_DIR="E:\coursera\Fall2020\cs410\CourseProject\competition\bert"
-set BASE_DIR="%BERT_DIR%\.."
-set MODEL_DIR="%BERT_DIR%\checkpoints\uncased_L-4_H-256_A-4_TF2"
-set TUNED_MODEL_DIR="%BERT_DIR%\tuned"
-set SCORE_DIR="%BERT_DIR%\scores"
-set JSON_DIR="%BASE_DIR%\json_data"
-set TFRECORD_DIR="%BERT_DIR%\tfrecord_data"
-@echo on

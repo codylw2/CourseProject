@@ -19,19 +19,19 @@ def load_json(f_path):
 def load_queries(run_type, input_dir):
     print('loading queries...')
     f_name = '{0}_queries.json'.format(run_type)
-    return load_json(os.path.join(input_dir, '..', f_name))
+    return load_json(os.path.join(input_dir, f_name))
 
 
 def load_qrels(run_type, input_dir):
     print('loading qrels...')
     f_name = '{0}_qrels.json'.format(run_type)
-    return load_json(os.path.join(input_dir, '..', f_name))
+    return load_json(os.path.join(input_dir, f_name))
 
 
 def load_docs(run_type, input_dir):
     print('loading docs...')
     f_name = '{0}_docs.json'.format(run_type)
-    return load_json(os.path.join(input_dir, '..', f_name))
+    return load_json(os.path.join(input_dir, f_name))
 
 
 def load_variants(input_dir):
@@ -74,10 +74,9 @@ def gen_dat(doc_dict, doc_list, variants, doc_keys, run_type, cranfield_dir):
     for key in doc_keys:
         cranfield_name = 'cranfield-{run_type}-{data_key}'.format(run_type=run_type, data_key=key[0])
 
-        if not os.path.exists(cranfield_name):
-            os.makedirs(cranfield_name)
-        shutil.copyfile(os.path.join(cranfield_dir, 'line.toml'),
-                        os.path.join(cranfield_dir, cranfield_name, 'line.toml'))
+        if not os.path.exists(os.path.join(cranfield_dir, cranfield_name)):
+            os.makedirs(os.path.join(cranfield_dir, cranfield_name))
+        shutil.copyfile(os.path.join(cranfield_dir, 'line.toml'), os.path.join(cranfield_dir, cranfield_name, 'line.toml'))
 
         outfiles.append(open(os.path.join(cranfield_dir, cranfield_name, '{0}.dat'.format(cranfield_name)), 'w', encoding='utf-8'))
         orderfiles.append(open(os.path.join(cranfield_dir, cranfield_name, 'cranfield-{run_type}-order.json').format(run_type=run_type), 'w', encoding='utf-8'))
@@ -153,7 +152,7 @@ if __name__ == '__main__':
         write_queries(queries, variants, query_keys, run_type)
         del queries
 
-        doc_keys = [s.split(':') for s in str(args.query_keys).split(';')]  # title, abstract, intro, text
+        doc_keys = [s.split(':') for s in str(args.doc_keys).split(';')]  # title, abstract, intro, text
         docs = load_docs(run_type, args.input_dir)
         doc_list = list(docs['uid'].keys())
         gen_dat(docs, doc_list, variants, doc_keys, run_type, args.cranfield_dir)

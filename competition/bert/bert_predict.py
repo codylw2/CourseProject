@@ -188,7 +188,7 @@ class TFRBertUtil(object):
 
         return input_ids, input_mask, segment_ids
 
-    def convert_to_elwc(self, context, examples, labels, label_name):
+    def convert_to_elwc(self, context, examples, labels, label_name, list_size, q_idx, uid_list):
         """Converts a <context, example list> pair to an ELWC example.
 
         Args:
@@ -204,27 +204,45 @@ class TFRBertUtil(object):
         if len(examples) != len(labels):
             raise ValueError("`examples` and `labels` should have the same size!")
 
-        elwc = input_pb2.ExampleListWithContext()
-        for example, label in zip(examples, labels):
-            (input_ids, input_mask, segment_ids) = self._to_bert_ids(context, example)
+        elwc_list = list()
+        ranking_list = list()
+        zip_list = list(zip(examples, labels, uid_list))
+        for i in range(0, len(zip_list), list_size):
 
-            feature = {
-                "input_ids":
-                    tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids)),
-                "input_mask":
-                    tf.train.Feature(int64_list=tf.train.Int64List(value=input_mask)),
-                "segment_ids":
-                    tf.train.Feature(
-                        int64_list=tf.train.Int64List(value=segment_ids)),
-                label_name:
-                    tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+            elwc = input_pb2.ExampleListWithContext()
+
+            ranking_problem = {
+              'q_idx': q_idx,
+              'documents': list()
             }
-            # print(feature)
-            tf_example = tf.train.Example(features=tf.train.Features(feature=feature))
-            elwc.examples.append(tf_example)
-            # print(elwc)
 
-        return elwc
+            for example, label, uid in zip_list[i:i+list_size]:
+                (input_ids, input_mask, segment_ids) = self._to_bert_ids(context, example)
+
+                feature = {
+                    "input_ids":
+                        tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids)),
+                    "input_mask":
+                        tf.train.Feature(int64_list=tf.train.Int64List(value=input_mask)),
+                    "segment_ids":
+                        tf.train.Feature(
+                            int64_list=tf.train.Int64List(value=segment_ids)),
+                    label_name:
+                        tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+                }
+                tf_example = tf.train.Example(features=tf.train.Features(feature=feature))
+                elwc.examples.append(tf_example)
+
+                ranking_problem['documents'].append(
+                  {
+                      'd_uid': uid[0],
+                      'chunk': uid[1]
+                  }
+                )
+            elwc_list.append(elwc)
+            ranking_list.append(ranking_problem)
+
+        return elwc_list, ranking_list
 
     def get_max_seq_length(self):
         return self._bert_max_seq_length
@@ -233,12 +251,9 @@ class TFRBertUtil(object):
 class TFRBertUtilJSON(object):
     def __init__(self, TFRBertUtil, modelPath):
         self.TFRBertUtilHelper = TFRBertUtil
-        self.model_path = self.determin_latest_model(modelPath)
+        self.model_path = modelPath
 
-    def determin_latest_model(self, modelPath):
-        return os.path.join(modelPath, str(max([int(f) for f in os.listdir(modelPath) if os.path.isdir(f)])))
-
-    def create_chunks(self, query, title, text, max_size):
+    def create_chunks(self, query, title, text, max_size, max_chunks=None):
         if not text and title:
             text = title.copy()
             title = []
@@ -264,9 +279,20 @@ class TFRBertUtilJSON(object):
             text_chunks.append(title + text[cur_idx:end_idx])
             cur_idx += chunk_size - overlap
 
-        return text_chunks
+        if max_chunks:
+            return text_chunks[:max_chunks]
+        else:
+            return text_chunks
 
-    def convert_json_to_elwc(self, filenameQueryJsonIn, query_key, filenameDocJsonIn, filenameJsonOut, docsAtOnce):
+    def convert_json_to_elwc(self, filenameQueryJsonIn, query_key, filenameDocJsonIn, filenameJsonOut, docsAtOnce, rerank_file):
+
+        previous_pred = dict()
+        with open(rerank_file, 'r') as f_rerank:
+            for line in f_rerank.readlines():
+                q_idx, uid, score = line.split()
+                if int(q_idx) not in previous_pred.keys():
+                    previous_pred[int(q_idx)] = list()
+                previous_pred[int(q_idx)].append(uid)
 
         tfrBertClient = TFRBertClient(servingSignatureName="serving_default", modelPath=self.model_path)
 
@@ -277,10 +303,6 @@ class TFRBertUtilJSON(object):
                 documents = json.load(doc_file)
                 docs_at_once = docsAtOnce
                 docRel = 0  # required value, not used in ranking
-
-                uid_list = documents['uid'].keys()
-                last_doc = list(uid_list)[-1]
-                num_docs = len(uid_list)
 
                 ranking_problem = {
                     'q_idx': 0,
@@ -306,9 +328,13 @@ class TFRBertUtilJSON(object):
                     chunk_count = 0
 
                     queryText = query[query_key]
-                    ranking_problem['q_idx'] = q_idx
+                    d_uid_list = list()
 
                     pred_count = 0
+
+                    uid_list = previous_pred[int(q_idx)]
+                    last_doc = list(uid_list)[-1]
+                    num_docs = len(uid_list)
 
                     if prev_q_idx and int(q_idx) <= prev_q_idx:
                         continue
@@ -317,44 +343,39 @@ class TFRBertUtilJSON(object):
                         doc_count += 1
                         doc = documents['uid'][d_uid]
 
-                        docChunks = self.create_chunks(queryText, doc['title_tokens'], doc['tokens'],
-                                                       self.TFRBertUtilHelper.get_max_seq_length())
+                        text_tokens = list()
+                        text_tokens.extend(doc['abstract_tokens'])
+                        text_tokens.extend(doc['intro_tokens'])
+                        docChunks = self.create_chunks(queryText, doc['title_tokens'], text_tokens,
+                                                       self.TFRBertUtilHelper.get_max_seq_length(), 1)
 
                         for c_idx, chunk in enumerate(docChunks):
                             chunk_count += 1
 
                             labels.append(docRel)
                             docTexts.append(chunk)
-                            ranking_problem['documents'].append(
-                                {
-                                    'd_uid': d_uid,
-                                    'chunk': c_idx
-                                }
-                            )
+                            d_uid_list.append([d_uid, c_idx])
 
                             if chunk_count > docs_at_once or (d_uid == last_doc and c_idx == len(docChunks) - 1):
                                 pred_count += 1
                                 percentCompleteStr = "{:.2f}".format(float(doc_count) * 100 / float(num_docs))
                                 print("Query {} Predicting ({}%)".format(q_idx, percentCompleteStr))
 
-                                elwcOut = self.TFRBertUtilHelper.convert_to_elwc(queryText, docTexts, labels,
-                                                                                 label_name="relevance")
+                                elwcOutList, ranking_problems = self.TFRBertUtilHelper.convert_to_elwc(queryText, docTexts, labels, "relevance", docs_at_once, q_idx, d_uid_list)
 
                                 # Generate predictions for each ranking problem in the list of ranking problems in the JSON file
-                                rankingProblemsOut = tfrBertClient.generatePredictionsList([elwcOut], [ranking_problem])
+                                rankingProblemsOut = tfrBertClient.generatePredictionsList(elwcOutList, ranking_problems)
 
                                 for prob in rankingProblemsOut:
                                     if prob['q_idx'] not in ranking_results.keys():
                                         ranking_results[prob['q_idx']] = prob['documents']
                                     else:
-                                        # print(type(ranking_results[prob['q_idx']]))
-                                        # print(ranking_results[prob['q_idx']])
                                         ranking_results[prob['q_idx']].extend(prob['documents'])
 
                                 chunk_count = 0
                                 labels = list()
                                 docTexts = list()
-                                ranking_problem['documents'] = list()
+                                d_uid_list = list()
 
                     print('ran query {} in {} seconds'.format(q_idx, str(time.time() - t_start)))
 
@@ -364,6 +385,8 @@ class TFRBertUtilJSON(object):
 
                 if int(q_idx) % 5 != 0:
                     tfrBertClient.exportRankingOutput(filenameJsonOut, ranking_results)
+
+            tfrBertClient.exportRankingPredictions(rerank_file, ranking_results)
 
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -399,6 +422,19 @@ class TFRBertClient(object):
         # Output JSON to file
         with open(filenameJSONOut, 'w') as outfile:
             json.dump(rankingProblemOutputJSON, outfile)
+        return
+
+    def exportRankingPredictions(self, rerank_file, ranking_results):
+        print(" * exportRankingOutput(): Exporting scores to predictions file (" + rerank_file + ")")
+
+        with open(rerank_file, 'w') as f_txt:
+            for q_idx, all_docs in ranking_results.items():
+                all_docs.sort(key=lambda x: x['score'], reverse=True)
+                for doc in all_docs[:1000]:
+                    uid = doc['d_uid']
+                    score = doc['score']
+                    f_txt.write('{} {} {}\n'.format(q_idx, uid, score))
+
         return
 
     def convert_scores_to_predictions(self, filenameJSONOut):
@@ -438,6 +474,15 @@ def secondsToStr(t):
                   [(t * 1000,), 1000, 60, 60])
 
 
+def find_latest_model(model_base):
+    saved_model_dir = os.path.join(model_base, 'export', 'latest_model')
+    saved_models = [int(i) for i in os.listdir(saved_model_dir)]
+    if not saved_models:
+        raise Exception('no models to load: {0}'.format(saved_models))
+    model_path = os.path.join(saved_model_dir, str(sorted(saved_models, reverse=True)[0]))
+    return model_path
+
+
 def main():
     # Get start time of execution
     startTime = time.time()
@@ -452,6 +497,7 @@ def main():
     parser.add_argument("--output_file", type=str, required=True, help="JSON output filename (e.g. test.scoresOut.json)")
     parser.add_argument("--model_path", type=str, required=True, help='')
     parser.add_argument("--docs_at_once", type=int, default=550, help='')
+    parser.add_argument("--rerank_file", type=str, required=True, help='')
     parser.add_argument("--do_lower_case", action="store_true", help="Set for uncased models, otherwise do not include")
 
     args = parser.parse_args()
@@ -460,12 +506,14 @@ def main():
     # Console output
     print(" * Generating predictions for JSON ranking problems (filename: " + args.query_file + ")")
 
+    model_path = find_latest_model(args.model_path)
+
     # Create helpers
     bert_helper = create_tfrbert_util_with_vocab(args.sequence_length, args.vocab_file, args.do_lower_case)
-    bert_helper_json = TFRBertUtilJSON(bert_helper, args.model_path)
+    bert_helper_json = TFRBertUtilJSON(bert_helper, model_path)
 
     # Convert the JSON of input ranking problems into ELWC
-    bert_helper_json.convert_json_to_elwc(args.query_file, args.query_key, args.doc_file, args.output_file, int(args.docs_at_once))
+    bert_helper_json.convert_json_to_elwc(args.query_file, args.query_key, args.doc_file, args.output_file, int(args.docs_at_once), args.rerank_file)
 
     # Display total execution time
     print(" * Total execution time: " + secondsToStr(time.time() - startTime))

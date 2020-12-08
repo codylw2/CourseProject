@@ -310,6 +310,15 @@ def secondsToStr(t):
                   [(t * 1000,), 1000, 60, 60])
 
 
+def find_latest_model(model_base):
+    saved_model_dir = os.path.join(model_base, 'export', 'saved_model_exporter')
+    saved_models = [int(i) for i in os.listdir(saved_model_dir)]
+    if not saved_models:
+        raise Exception('no models to load: {0}'.format(saved_models))
+    model_path = os.path.join(saved_model_dir, str(sorted(saved_models, reverse=True)[0]))
+    return model_path
+
+
 def main():
     # Get start time of execution
     startTime = time.time()
@@ -333,9 +342,11 @@ def main():
     # Console output
     print(" * Generating predictions for JSON ranking problems (filename: " + args.query_file + ")")
 
+    model_path = find_latest_model(args.model_path)
+
     # Create helpers
     bert_helper = create_tfrbert_util_with_vocab(args.sequence_length, args.vocab_file, args.do_lower_case)
-    bert_helper_json = TFRBertUtilJSON(bert_helper, args.model_path)
+    bert_helper_json = TFRBertUtilJSON(bert_helper, model_path)
 
     # Convert the JSON of input ranking problems into ELWC
     bert_helper_json.convert_json_to_elwc(args.query_file, args.query_key, args.doc_file, args.output_file, int(args.docs_at_once), args.rerank_file)

@@ -217,7 +217,7 @@ class TFRBertUtil(object):
 
       return input_ids, input_mask, segment_ids
 
-  def convert_to_elwc(self, context, examples, labels, label_name):
+  def convert_to_elwc(self, context, examples, labels, label_name, list_size):
       """Converts a <context, example list> pair to an ELWC example.
 
       Args:
@@ -233,27 +233,30 @@ class TFRBertUtil(object):
       if len(examples) != len(labels):
           raise ValueError("`examples` and `labels` should have the same size!")
 
-      elwc = input_pb2.ExampleListWithContext()
-      for example, label in zip(examples, labels):
-          (input_ids, input_mask, segment_ids) = self._to_bert_ids(context, example)
+      elwc_list = list()
+      zip_list = list(zip(examples, labels))
+      for i in range(0, len(zip_list), list_size):
 
-          feature = {
-              "input_ids":
-                  tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids)),
-              "input_mask":
-                  tf.train.Feature(int64_list=tf.train.Int64List(value=input_mask)),
-              "segment_ids":
-                  tf.train.Feature(
-                      int64_list=tf.train.Int64List(value=segment_ids)),
-              label_name:
-                  tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
-          }
-          # print(feature)
-          tf_example = tf.train.Example(features=tf.train.Features(feature=feature))
-          elwc.examples.append(tf_example)
-          # print(elwc)
+          elwc = input_pb2.ExampleListWithContext()
+          for example, label in zip_list[i:i+list_size]:
+              (input_ids, input_mask, segment_ids) = self._to_bert_ids(context, example)
 
-      return elwc
+              feature = {
+                  "input_ids":
+                      tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids)),
+                  "input_mask":
+                      tf.train.Feature(int64_list=tf.train.Int64List(value=input_mask)),
+                  "segment_ids":
+                      tf.train.Feature(
+                          int64_list=tf.train.Int64List(value=segment_ids)),
+                  label_name:
+                      tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+              }
+              tf_example = tf.train.Example(features=tf.train.Features(feature=feature))
+              elwc.examples.append(tf_example)
+          elwc_list.append(elwc)
+
+      return elwc_list
 
   def get_max_seq_length(self):
       return self._bert_max_seq_length
