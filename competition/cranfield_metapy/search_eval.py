@@ -132,7 +132,8 @@ def rank_results(ranker, query_file, idx, doc_list, results_dict, data_key):
 
 
 def gen_predictions(results_dict, dat_keys, weights, predict_dir):
-    d_weights = list(zip(dat_keys, weights))
+    d_weights = list(zip(dat_keys.split(';'), weights))
+    print(d_weights)
 
     pred_file = os.path.join(predict_dir, 'predictions.txt')
     with open(pred_file, 'w') as txt:
@@ -142,7 +143,7 @@ def gen_predictions(results_dict, dat_keys, weights, predict_dir):
                 score = sum([scores.get(d_key, 0)*weight for d_key, weight in d_weights])
                 results_vector.append([score, uid])
 
-            for score, uid in sorted(results_vector, reverse=True)[:1000]:
+            for score, uid in sorted(results_vector, reverse=True)[:2000]:
                 txt.write('{} {} {}\n'.format(q_idx + 1, uid, score))
 
 
@@ -159,7 +160,7 @@ if __name__ == '__main__':
                         help='the directory that contains the cranfield data')
     parser.add_argument('--predict_dir', type=str, default=os.path.join(file_dir, '..', '..'),
                         help='the directory that contains the cranfield data')
-    parser.add_argument('--remove_idx', action='store_true', default=True, help='remove and exist inverted index and recreate it')
+    parser.add_argument('--remove_idx', action='store_true', help='remove and exist inverted index and recreate it')
     args = parser.parse_args()
 
     t_start = time.time()
