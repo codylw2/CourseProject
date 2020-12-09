@@ -303,18 +303,7 @@ class TFRBertUtilJSON(object):
                 documents = json.load(doc_file)
                 docs_at_once = docsAtOnce
                 docRel = 0  # required value, not used in ranking
-
-                ranking_problem = {
-                    'q_idx': 0,
-                    'documents': list()
-                }
-                if os.path.exists(filenameJsonOut):
-                    with open(filenameJsonOut) as results_file:
-                        ranking_results = json.load(results_file)
-                else:
-                    ranking_results = dict()
-
-                prev_q_idx = max([int(q) for q in ranking_results.keys()]) if ranking_results else None
+                ranking_results = dict()
 
                 q_keys = sorted([int(q) for q in queries.keys()])
                 for q_key in q_keys:
@@ -335,9 +324,6 @@ class TFRBertUtilJSON(object):
                     uid_list = previous_pred[int(q_idx)]
                     last_doc = list(uid_list)[-1]
                     num_docs = len(uid_list)
-
-                    if prev_q_idx and int(q_idx) <= prev_q_idx:
-                        continue
 
                     for d_uid in uid_list:
                         doc_count += 1

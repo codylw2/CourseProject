@@ -143,7 +143,7 @@ def gen_predictions(results_dict, dat_keys, weights, predict_dir):
                 score = sum([scores.get(d_key, 0)*weight for d_key, weight in d_weights])
                 results_vector.append([score, uid])
 
-            for score, uid in sorted(results_vector, reverse=True)[:2000]:
+            for score, uid in sorted(results_vector, reverse=True)[:5000]:
                 txt.write('{} {} {}\n'.format(q_idx + 1, uid, score))
 
 
