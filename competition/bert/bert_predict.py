@@ -342,7 +342,7 @@ class TFRBertUtilJSON(object):
                             docTexts.append(chunk)
                             d_uid_list.append([d_uid, c_idx])
 
-                            if chunk_count > docs_at_once or (d_uid == last_doc and c_idx == len(docChunks) - 1):
+                            if chunk_count >= docs_at_once or (d_uid == last_doc and c_idx == len(docChunks) - 1):
                                 pred_count += 1
                                 percentCompleteStr = "{:.2f}".format(float(doc_count) * 100 / float(num_docs))
                                 print("Query {} Predicting ({}%)".format(q_idx, percentCompleteStr))
