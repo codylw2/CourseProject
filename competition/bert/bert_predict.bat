@@ -1,6 +1,6 @@
 call bert_set_vars.bat
 
-python bert_predict.py ^
+python %WORKDIR%\bert_predict.py ^
     --vocab_file %VOCAB_FILE% ^
     --sequence_length %SEQ_LENGTH% ^
     --query_file %JSON_DIR%/bert_test_queries.json ^

@@ -1,6 +1,5 @@
-# project_convert_json_to_elwc.py
+# tfr_convert_json_to_elwc.py
 
-from tensorflow_ranking.extension import tfrbert
 import argparse
 import copy
 import json
@@ -9,14 +8,8 @@ import sys
 import tensorflow as tf
 import traceback
 
-from official.nlp import optimization
 from official.nlp.bert import tokenization
 from tensorflow_serving.apis import input_pb2
-
-script_dir = os.path.dirname(__file__)
-sys.path.insert(0, script_dir)
-
-from multiprocessing import Pool
 
 
 def load_json(json_path):

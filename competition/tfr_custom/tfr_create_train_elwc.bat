@@ -1,6 +1,6 @@
 call tfr_set_vars.bat
 
-python tfr_convert_json_to_elwc.py ^
+python %WORKDIR%\tfr_convert_json_to_elwc.py ^
     --vocab_file %VOCAB_FILE% ^
     --sequence_length=%SEQ_LENGTH% ^
     --query_file=%JSON_DIR%/train_queries.json ^

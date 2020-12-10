@@ -1,6 +1,6 @@
 call tfr_set_vars.bat
 
-python tfr_predict.py ^
+python %WORKDIR%\tfr_predict.py ^
     --vocab_file %VOCAB_FILE% ^
     --sequence_length %SEQ_LENGTH% ^
     --query_file %JSON_DIR%/test_queries.json ^

@@ -3,29 +3,143 @@
 3) Documentation of the usage of the software including either documentation of usages of APIs or detailed instructions on how to install and run a software, whichever is applicable. 
 
 
+Assumptions:
+You are running this code on Windows 10 machine that has ample RAM and a CUDA capable gpu. 
+All file paths are relative to the base directory of the repository
+
+
+
+Installation Instructions:
+
+What to install:
+Aquire the datasets:
+    * Files should be downloaded and unzipped here: .\competition\datasets
+    The test files can be obtained from https://drive.google.com/file/d/1FCW8fmcneow5yyDgApkPIGM-r2x6OFkm/view?usp=sharing
+    The train files can be obtained from https://drive.google.com/file/d/1E_Y-MkNvoOYoCZUZZa8JJ3ExiHYTfKTo/view?usp=sharing
+Python
+    Instructions: https://docs.conda.io/projects/conda/en/latest/user-guide/install/
+Latest Nvidia Drivers (required to run BERT or Tensorflow Ranking on GPU)
+    Instructions: https://docs.nvidia.com/cuda/wsl-user-guide/index.html
+        *Instructions require installation of other software and packages you must follow all of them
+Bazel (required to run BERT training locally)
+    Instructions: https://docs.bazel.build/versions/master/install-windows.html
+BERT Model (required to run BERT)
+    * Due to the size of the models, they are not directly included in the repository
+    Google BERT Models (recommended):
+        * Google offeres a variety of differents sizes for the models to run. I ran using a BERT Mini but could possibly use a BERT Small as well. Anything larger likely requires a TPU through Google Colab to run.
+        https://github.com/google-research/bert
+    SciBERT Model (not recommended, requires TPU): 
+        https://github.com/allenai/scibert/
+
+
+
+What python packages to install
+Main Python Environment (3.7):
+    * This is the main environment and should be used when running
+    Pip Packages:
+        tensorflow_ranking
+        metapy
+        pytoml
+
+BERT Conversion Environment (3.7):
+    * This is required because there are conflicts in the dependencies of the modules and only the dev module for Tensorflow's Model Garden
+    Pip Packages:
+        tf-models-nightly
+        
+
+How to run?
+**WARNING: running these scripts will require a large amount of RAM**
+* your python environment should be activated before running any scripts
+
+* Not described
+    * How to setup and run using Google Colab.
+
+Prepare Data:
+    * Generate the json file that contains the information for each dataset. This is required in order to run any of the different methodologies
+        .\competition\create_bert_data.bat
+    
+Run BM25+ or another ranker:
+    * Generate the Cranfield Datasets that will be required to run the ranker
+        .\competition\cranfield_metapy\cm_create_data.bat
+        
+    * Run the ranker of your choice (default arguments already in the file)
+        .\competition\cranfield_metapy\cm_rank_docs.bat
+        
+Run Tensorflow Ranking
+    * Convert the train data into two tensorflow example list with context (elwc) files
+        .\competition\tfr_custom\tfr_create_train_elwc.bat
+        
+    * Train the model on the elwc files
+        .\competition\tfr_custom\tfr_train_model.bat
+        
+    * Re-rank the output of a previous run (requires a file in the format of a predictions file, no limit on docs per query but will truncate output to 1000
+        .\competition\tfr_custom\tfr_predict.bat
+        
+Run a BERT model
+    * Convert the train data into two tensorflow example list with context (elwc) files
+        .\competition\bert\bert_create_train_elwc.bat
+        
+    * Train the model on the elwc files
+        .\competition\bert\bert_train_model.bat
+        
+    * Re-rank the output of a previous run (requires a file in the format of a predictions file, no limit on docs per query but will truncate output to 1000
+        .\competition\bert\bert_predict.bat
+
+
+
+Attempted Runs:
+    Cranfield
+        Combine query, question, and narrative into and run as one query on all docs
+        Combine title, abstract, and body text and query over all
+        Combine title, abstract and query over all
+        Separate title, abstract, and body text. Rank over each individual component and using weighting to combine rankings
+        Ranking using:
+            DirichletPrior
+            JelinekMercer
+            OkapiBM25
+            BM25+
+            BM25+ and Rocchio (pseudo) Feedback
+    BERT
+        Using narrative
+        Using query
+        Using all docs
+        Using ranking results from BM25
+        Splitting docs into numerous chunks due to size limitations
+            Tested using average of all chunk ranks, geometric mean of chunks, max chunk ranking, and first chunk ranking
+
+
+
 Script API Documentation:
 **Unless otherwise specified paths are relative to the root of the repository
 
-./competition/check_covid_variants.py
+General:
+File: ./competition/check_covid_variants.py
 Purpose: Check for coronavirus variants in the corpus
+Source: developed by project team
 API:
     variant_file: the file that the coronavirus variants will be output to. File can already exist. Existing variants will be loaded.
     known_variants: known variants of the coronavirus that exist in the corpus and will be used to determine other variants
     doc_keys: the keys to use when search the document dictionary for variants
     run_type: the dataset that will be searched for variants
     input_dir: the directory that contains the json representation of the datasets to be processed
+Detailed Description:
+    This is a python script that was implemented in python 3.7. This script relies on the output of create_bert_data.py in order to run. It loads the json for one or both datasets and then processes the text to find variants of some predefined words in the corpus and queries. The text is processed using python multiprocessing module in order to speed up execution of the script. 
     
-./competition/checkpoint_converter.py
+File: ./competition/checkpoint_converter.py
 Purpose: Converter BERT checkpoint files from Tensorflow v1 to v2+
+Source: Tensorflow Model Garden Repository
 API:
     bert_config_file: Bert configuration file to define core bert layers.
     checkpoint_to_convert: Initial checkpoint from a pretrained BERT model core (that is, only the BertModel, with no task heads.)
     converted_checkpoint_path: Name for the created object-based V2 checkpoint.
     checkpoint_model_name: The name of the model when saving the checkpoint, i.e., the checkpoint will be saved using: tf.train.Checkpoint(FLAGS.checkpoint_model_name=model).
     converted_model: Whether to convert the checkpoint to a `BertEncoder` model or a `BertPretrainerV2` model (with mlm but without classification heads).
+Detailed Description:
+    This script was not written by me but was lightly modified for the purpose of this project. This is a python script that was tested in python 3.7. This script is meant to convert a BERT module that you downloaded into a version that is capable of being ran using tensorflow version 2.0+. 
     
-./competition/create_bert_data.py
+File: ./competition/create_bert_data.py
 Purpose: Combine and compile the information from the dataset into and easily loadable json for use by other scripts
+Source: developed by project team
 API:
     vocab_file: The file containing the vocabulary to be used when tokenizing a text
     variant_file: A file containing variants of the word coronavirus or its equivalents
@@ -34,10 +148,15 @@ API:
     tokenize: If use, this will store a tokenized representation of the script in the output json. Must be used with `vocab_file`
     input_dir: The directory that contains all of the source files for the dataset
     output_dir: The directory where the json representations of the documents will be stored
+Detailed Description:
+    This is a python script that was tested in python 3.7. The inputs to the script will determine the exact behavior at run time but lets discuss the more complete case of the training dataset. When the training dataset is specified it will start by loading the queries from there original xml format into a python dictionary. If the script is ran with the tokenize option then each of the three variants of the query (query, question, and narrative) will be tokenized according to the vocabulary defined in the specified vocab file. This json is then dumped into a target directory. For the training dataset it will also load the query relevance judgements. A list of all of the documents and their associated uid, title, abstract, publication date, and list of files containing the text representation is pulled from the metadata.csv file. The list of documents to further process is pruned done to the same as the list of relevance judgements. For each document to process the script iterates through the list of files that contains the text representation until it finds a suitable candidate or exhausts all options. The text from the representation file is loaded in the document dictionary object. If the tokenize option is used, the documents will then be tokenized through the use of a multi-processed pool. The resulting output is then written to the disk.
 
 
-./competition/cranfield_metapy/create_cranfield.py
+
+Metapy (BM25, …)
+File: ./competition/cranfield_metapy/create_cranfield.py
 Purpose: Use the json representation of the dataset to create a cranfield dataset for use with metapy
+Source: developed by project team
 API:
     variant_file: A file containing variants of the word coronavirus or its equivalents
     variant_default: The value that will be used to replace all variants in the corpus
@@ -46,9 +165,12 @@ API:
     doc_keys: The keys that will be used when creating the cranfield document files. Multiple keys can be specified and multiple keys can be combined into a single document. If creating separate datasets, use a ';' to separate keys. If combining keys for a dataset use a ':' to separate keys:
     cranfield_dir: The directory to use as a base for generating the cranfield data.
     input_dir: The directory where the json representations of the documents are stored
+Detailed Description:
+    This is a python script that was implemented in python 3.7. This script relies on the output of create_bert_data.py in order to run. This uses the loaded json representation of the dataset to produce a use specified cranfield dataset for use with metapy. Each cranfield dataset can be uniquely defined by the user to consist of a one-to-one relationship with keys in the document dictionary or it can consist of multiple keys combined. This allows for flexibility in how the expansive each iteration of ranking testing is.
 
-./competition/cranfield_metapy/search_eval.py
+File: ./competition/cranfield_metapy/search_eval.py
 Purpose: Rank the documents in the corpus and create the predictions file
+Source: original version from MP 2.2 and heavily modified to fit use case
 API:
     config_template: The template file that will be used for creating the configs for each run of the ranker
     run_type: The dataset that will be searched for variants
@@ -59,13 +181,21 @@ API:
     cranfield_dir: The directory that is the base for the cranfield dataset(s)
     predict_dir: The directory to contain the predictions file.
     remove_idx: Delete an existing inverted index and create a new one. If no index exists it will not fail
+Detailed Description:
+    This is a python script that was implemented in python 3.7. This script relies on the output of create_cranfield.py in order to run. This script allows the user to specifiy what ranker to run from a predefined list of rankers. The user can also run rankings over multiple datasets and specify the weight that each ranking will contribute to the final prediction rankings.
 
-./competition/cranfield_metapy/search_eval_pool.py
+File: ./competition/cranfield_metapy/search_eval_pool.py
 Purpose: Used to find the optimal parameters for ranking algorithms. Not for production use.
+Source: original version from MP 2.2 and heavily modified to fit use case
 API: N/A
+Detailed Description:
+    This is a python script that was implemented in python 3.7. This script relies on the output of create_cranfield.py in order to run. This script allows the user to attempt to optimize the parameters for a predefined list of rankers. The optimization takes place using a multi-processed pool so that it can run numerous iterations over a predefined range of values. Each iteration of the optimization loop is evaulated based on normalized cummulative gain at 20 documents.
 
 
-./competition/tfr_custom/tfr_convert_json_to_elwc.py
+
+Tensorflow Ranking:
+File: ./competition/tfr_custom/tfr_convert_json_to_elwc.py
+Source: modified version of file located here https://github.com/cognitiveailab/ranking
 Purpose: To convert json data to an elwc formatted tfrecord file for use with model training
 API:
     vocab_file: The file containing the vocabulary to be used when tokenizing a text
@@ -78,8 +208,11 @@ API:
     output_eval_file: The tfrecord file to be used for evaluation
     list_size: The maximum number of documents to score per query
     do_lower_case: ensure all query and document strings are lowercase
+Detailed Description:
+    This script was not originally written by me but has been highly modified for the purpose of this project. This is a python script that was tested in python 3.7. This script relies on the output of create_bert_data.py in order to run. This script loads in the queries, documents, and relevance judgments for the train dataset and converts them to an example list with context files for use in training the model. The maximum number of documents associated with each query is defined by the list size parameter. If the number of documents for a query exceeds this parameter value then the document list is chunked into multiple elwc representations before being output to the files. The elwc objects are formatted for the model's specific requirements. Each query and document is limited to a maxim number of tokens as defined by sequence_length and if a document or query is longer than this value then it is truncated.
 
-./competition/tfr_custom/tfr_predict.py
+File: ./competition/tfr_custom/tfr_predict.py
+Source: modified version of file located here https://github.com/cognitiveailab/ranking
 Purpose: To score the documents in the test dataset against the queries in the test dataset and output a predictions file
 API:
     vocab_file: The file containing the vocabulary to be used when tokenizing a text
@@ -93,12 +226,92 @@ API:
     docs_at_once: The maximum number of documents to score at once
     rerank_file: The input file consisting of previous rankings that will be reranked with the tensorflow model
     do_lower_case: ensure all query and document strings are lowercase
+Detailed Description:
+    This script was not originally written by me but has been highly modified for the purpose of this project. This is a python script that was tested in python 3.7. This script relies on the output of create_bert_data.py in order to run. This script loads in the queries and documents for the specified dataset. It also loads in the relevance judgements of a previous ranking and a trained model. The list of documents to rank is limited to only the files specified in the previous ranking. Each document query combination is converted into an example list with context(elwc) object and then it is passed to the loaded model. All of the documents ranked for each query is combined into a singular list that is sorted by the score and only the top 1000 documents are output to a predictions file. The predictions file output is the same as the file of the relevance judgements.
 
 
-./competition/project_predict.py
-./competition/project_convert_json_to_elwc.py
-./competition/project_client_predict_from_json.py
+
+BERT:
+File: ./competition/bert/bert_predict.py
+Source: modified version of file located here https://github.com/cognitiveailab/ranking
+Purpose: To convert json data to an elwc formatted tfrecord file for use with model training
+API:
+    vocab_file: The file containing the vocabulary to be used when tokenizing a text
+    sequence_length: The max length of any individual query or document
+    query_file: The json file that contains all of the queries
+    qrel_files: The file containing the training relevance judgements
+    query_key: The type of query that will be used as context for ranking, i.e. (query, question, narrative)
+    doc_file: The json file that contains all of the documents
+    output_train_file: The tfrecord file to be used for training
+    output_eval_file: The tfrecord file to be used for evaluation
+    list_size: The maximum number of documents to score per query
+    do_lower_case: ensure all query and document strings are lowercase
+Detailed Description:
+    This script was not originally written by me but has been highly modified for the purpose of this project. This is a python script that was tested in python 3.7. This script relies on the output of create_bert_data.py in order to run. This script loads in the queries, documents, and relevance judgments for the train dataset and converts them to an example list with context files for use in training the model. The maximum number of documents associated with each query is defined by the list size parameter. If the number of documents for a query exceeds this parameter value then the document list is chunked into multiple elwc representations before being output to the files. The elwc objects are formatted for the model's specific requirements. Each query and document is limited to a maxim number of tokens as defined by sequence_length and if a document or query is longer than this value then it is truncated.
+
+File: ./competition/bert/bert_convert_json_to_elwc.py
+Source: modified version of file located here https://github.com/cognitiveailab/ranking
+Purpose: To score the documents in the test dataset against the queries in the test dataset and output a predictions file
+API:
+    vocab_file: The file containing the vocabulary to be used when tokenizing a text
+    sequence_length: The max length of any individual query or document
+    query_file: The json file that contains all of the queries
+    qrel_files: The file containing the training relevance judgements
+    query_key: The type of query that will be used as context for ranking, i.e. (query, question, narrative)
+    doc_file: The json file that contains all of the documents
+    output_file: The file that will contain the scores
+    model_path: The path to the saved model for use in predictions
+    docs_at_once: The maximum number of documents to score at once
+    rerank_file: The input file consisting of previous rankings that will be reranked with the tensorflow model
+    do_lower_case: ensure all query and document strings are lowercase
+Detailed Description:
+    This script was not originally written by me but has been highly modified for the purpose of this project. This is a python script that was tested in python 3.7. This script relies on the output of create_bert_data.py in order to run. This script loads in the queries and documents for the specified dataset. It also loads in the relevance judgements of a previous ranking and a trained model. The list of documents to rank is limited to only the files specified in the previous ranking. Each document query combination is converted into an example list with context(elwc) object and then it is passed to the loaded model. All of the documents ranked for each query is combined into a singular list that is sorted by the score and only the top 1000 documents are output to a predictions file. The predictions file output is the same as the file of the relevance judgements.
 
 
-"The name of the model when saving the checkpoint, i.e., the checkpoint will be saved using: tf.train.Checkpoint(FLAGS.checkpoint_model_name=model).")
+Resources:
+
+Installation Guidance:
+tensorflow gpu requirements: https://www.tensorflow.org/install/gpu
+CUDA: https://developer.nvidia.com/cuda-10.1-download-archive-update2?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu&target_version=1804&target_type=deblocal
+cuDNN: https://developer.nvidia.com/rdp/cudnn-archive
+install .deb: https://www.quora.com/Is-it-possible-to-install-a-deb-package-in-Windows#:~:text=Potentially%20yes%2C%20as%20long%20as,deb
+
+BM25:
+https://github.com/vespa-engine/cord-19/blob/master/cord-19-queries.md
+https://docs.vespa.ai/documentation/reference/bm25.html
+
+TensorflowRanking:
+http://cognitiveai.org/2020/09/08/using-tensorflow-ranking-bert-tfr-bert-an-end-to-end-example/
+https://github.com/cognitiveailab/ranking
+https://github.com/tensorflow/ranking
+https://colab.research.google.com/github/tensorflow/ranking/blob/master/tensorflow_ranking/examples/handling_sparse_features.ipynb
+
+Tensorflow Ranking (how to serve a model):
+https://www.tensorflow.org/tfx/serving/serving_basic
+https://www.tensorflow.org/tfx/tutorials/serving/rest_simple#serve_your_model_with_tensorflow_serving
+https://github.com/tensorflow/docs/blob/master/site/en/r1/guide/saved_model.md#cli-to-inspect-and-execute-savedmodel
+https://github.com/cognitiveailab/ranking/blob/master/tensorflow_ranking/extension/examples/tfrbert_client_predict_from_json.py
+
+Tensorflow Ranking (how to predict):
+https://github.com/tensorflow/ranking/issues/48
+https://stackoverflow.com/questions/59528975/tf-estimator-predict-slow-with-tensorflow-ranking-module
+
+BERT Checkpoint Conversion:
+https://github.com/tensorflow/models/tree/master/official/nlp/bert
+
+BERT:
+https://github.com/google-research/bert
+https://ai.googleblog.com/2018/12/tf-ranking-scalable-tensorflow-library.html
+https://arxiv.org/pdf/1812.00073.pdf
+
+SciBERT:
+https://www.aclweb.org/anthology/D19-1371/
+https://huggingface.co/gsarti/scibert-nli
+https://github.com/allenai/scibert/
+
+Docker Guidance:
+https://superuser.com/questions/1382472/how-do-i-find-and-enable-the-virtualization-setting-on-windows-10
+https://docs.docker.com/docker-for-windows/troubleshoot/#virtualization-must-be-enabled
+https://docs.docker.com/docker-for-windows/install/
+
 

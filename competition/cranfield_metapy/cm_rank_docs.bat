@@ -1,6 +1,6 @@
 call cm_set_vars.bat
 
-python search_eval.py ^
+python %WORKDIR%\search_eval.py ^
     --run_type "test" ^
     --ranker "bm25+" ^
     --params "1.0;0.38;1.0" ^

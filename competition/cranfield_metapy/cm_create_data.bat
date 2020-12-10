@@ -1,6 +1,6 @@
 call cm_set_vars.bat
 
-python create_cranfield.py ^
+python %WORKDIR%\create_cranfield.py ^
     --run_type "test" ^
     --query_keys "query" ^
     --doc_keys "title:abstract:intro" ^
