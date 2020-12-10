@@ -5,7 +5,7 @@ set BASE=%WORKDIR%\..\..
 set MODEL_DIR=%WORKDIR%\checkpoints\uncased_L-4_H-256_A-4_TF2
 set DATASET_DIR=%BASE%\competition\datasets
 set JSON_DIR=%BASE%\competition\json_data
-set TUNED_MODEL_DIR="%WORKDIR%\tuned"
+set TUNED_MODEL_DIR="%WORKDIR%\train_bert_ndcg50000_output"
 set VOCAB_FILE=%DATASET_DIR%\bert_vocab.txt
 
 set CUDA_VISIBLE_DEVICES=0

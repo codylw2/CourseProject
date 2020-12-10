@@ -365,10 +365,10 @@ class TFRBertUtilJSON(object):
                 elwcOutList = self.TFRBertUtilHelper.convert_to_elwc(queryText, docTexts, labels, label_name="relevance", list_size=list_size)
 
                 for elwc_idx, elwcOut in enumerate(elwcOutList):
-                    if int(elwc_idx) % 2 == 0:
-                        evalELWCOut.append(elwcOut)
-                    else:
+                    if elwc_idx == 0 or elwc_idx % 3 != 0:
                         trainELWCOut.append(elwcOut)
+                    else:
+                        evalELWCOut.append(elwcOut)
 
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
