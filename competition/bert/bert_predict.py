@@ -405,6 +405,10 @@ class TFRBertClient(object):
 
     def exportRankingOutput(self, filenameJSONOut, rankingProblemOutputJSON):
         print(" * exportRankingOutput(): Exporting scores to JSON (" + filenameJSONOut + ")")
+
+        if not os.path.exists(os.path.dirname(filenameJSONOut)):
+            os.makedirs(os.path.dirname(filenameJSONOut))
+
         # Output JSON to file
         with open(filenameJSONOut, 'w') as outfile:
             json.dump(rankingProblemOutputJSON, outfile)
@@ -412,6 +416,9 @@ class TFRBertClient(object):
 
     def exportRankingPredictions(self, rerank_file, ranking_results):
         print(" * exportRankingOutput(): Exporting scores to predictions file (" + rerank_file + ")")
+
+        if not os.path.exists(os.path.dirname(rerank_file)):
+            os.makedirs(os.path.dirname(rerank_file))
 
         with open(rerank_file, 'w') as f_txt:
             for q_idx, all_docs in ranking_results.items():
@@ -422,22 +429,6 @@ class TFRBertClient(object):
                     f_txt.write('{} {} {}\n'.format(q_idx, uid, score))
 
         return
-
-    def convert_scores_to_predictions(self, filenameJSONOut):
-        if os.path.isfile(filenameJSONOut):
-            with open(filenameJSONOut, 'r') as f_json:
-                scores = json.load(f_json)
-
-            predict_dir = os.path.dirname(os.path.abspath(filenameJSONOut))
-            with open(os.path.join(predict_dir, 'predictions.txt'), 'w') as f_predict:
-                for key, val in scores.items():
-                    val.sort(key=lambda x: x['score'], reverse=True)
-                    scores[key] = val[:1000]
-
-                    for doc in val:
-                        f_predict.write('{} {} {}\n'.format(key, doc['d_uid'], doc['score']))
-        else:
-            raise Exception('score file not found: {0}'.format(filenameJSONOut))
 
 
 # Adapted from TfrBertUtilTest (tfrbert_test.py)

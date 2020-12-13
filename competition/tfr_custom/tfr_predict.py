@@ -222,11 +222,17 @@ class TFRBertUtilJSON(object):
                                 d_uid_list = list()
 
                     # Export ranked results to JSON file
-                    tfrBertClient.exportRankingOutput(filenameJsonOut, ranking_results)
+
+                    # Export ranked results to JSON file
+                    if int(q_idx) % 5 == 0:
+                        tfrBertClient.exportRankingOutput(filenameJsonOut, ranking_results)
 
                     print('ran query {} in {} seconds'.format(q_idx, str(time.time() - t_start)))
 
-            tfrBertClient.exportRankingOutput(rerank_file, ranking_results)
+                if int(q_idx) % 5 != 0:
+                    tfrBertClient.exportRankingOutput(filenameJsonOut, ranking_results)
+
+            tfrBertClient.exportRankingPredictions(rerank_file, ranking_results)
 
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -260,8 +266,22 @@ class TFRBertClient(object):
             rankingProblemsOut.append(self.generatePredictions(rankingProblemsELWC[idx], rankingProblemsJSON[idx]))
         return rankingProblemsOut
 
-    def exportRankingOutput(self, rerank_file, ranking_results):
+    def exportRankingOutput(self, filenameJSONOut, rankingProblemOutputJSON):
+        print(" * exportRankingOutput(): Exporting scores to JSON (" + filenameJSONOut + ")")
+
+        if not os.path.exists(os.path.dirname(filenameJSONOut)):
+            os.makedirs(os.path.dirname(filenameJSONOut))
+
+        # Output JSON to file
+        with open(filenameJSONOut, 'w') as outfile:
+            json.dump(rankingProblemOutputJSON, outfile)
+        return
+
+    def exportRankingPredictions(self, rerank_file, ranking_results):
         print(" * exportRankingOutput(): Exporting scores to predictions file (" + rerank_file + ")")
+
+        if not os.path.exists(os.path.dirname(rerank_file)):
+            os.makedirs(os.path.dirname(rerank_file))
 
         with open(rerank_file, 'w') as f_txt:
             for q_idx, all_docs in ranking_results.items():

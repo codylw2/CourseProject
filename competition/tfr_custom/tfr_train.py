@@ -70,37 +70,35 @@ FLAGS = flags.FLAGS
 _LABEL_FEATURE = "relevance"
 _PADDING_LABEL = -1
 _DOCUMENT_MASK = "__document_mask__"
-
-
 def context_feature_columns():
-  """Returns context feature names to column definitions."""
-  if FLAGS.vocab_path:
-    sparse_column = tf.feature_column.categorical_column_with_vocabulary_file(
-        key="query_tokens", vocabulary_file=FLAGS.vocab_path)
-  else:
-    sparse_column = tf.feature_column.categorical_column_with_hash_bucket(
-        key="query_tokens", hash_bucket_size=100)
-  query_embedding_column = tf.feature_column.embedding_column(
-      sparse_column, FLAGS.embedding_dim)
-  return {"query_tokens": query_embedding_column}
+    """Returns context feature names to column definitions."""
+    if FLAGS.vocab_path:
+        sparse_column = tf.feature_column.categorical_column_with_vocabulary_file(
+            key="query_tokens", vocabulary_file=FLAGS.vocab_path)
+    else:
+        sparse_column = tf.feature_column.categorical_column_with_hash_bucket(
+            key="query_tokens", hash_bucket_size=100)
+    query_embedding_column = tf.feature_column.embedding_column(
+        sparse_column, FLAGS.embedding_dim)
+    return {"query_tokens": query_embedding_column}
 
 
 def example_feature_columns(use_weight_feature=True):
-  """Returns the example feature columns."""
-  if FLAGS.vocab_path:
-    sparse_column = tf.feature_column.categorical_column_with_vocabulary_file(
-        key="document_tokens", vocabulary_file=FLAGS.vocab_path)
-  else:
-    sparse_column = tf.feature_column.categorical_column_with_hash_bucket(
-        key="document_tokens", hash_bucket_size=100)
-  document_embedding_column = tf.feature_column.embedding_column(
-      sparse_column, FLAGS.embedding_dim)
-  feature_columns = {"document_tokens": document_embedding_column}
-  if use_weight_feature and FLAGS.weights_feature_name:
-    feature_columns[FLAGS.weights_feature_name] = (
-        tf.feature_column.numeric_column(FLAGS.weights_feature_name,
-                                         default_value=1.))
-  return feature_columns
+    """Returns the example feature columns."""
+    if FLAGS.vocab_path:
+        sparse_column = tf.feature_column.categorical_column_with_vocabulary_file(
+            key="document_tokens", vocabulary_file=FLAGS.vocab_path)
+    else:
+        sparse_column = tf.feature_column.categorical_column_with_hash_bucket(
+            key="document_tokens", hash_bucket_size=100)
+    document_embedding_column = tf.feature_column.embedding_column(
+        sparse_column, FLAGS.embedding_dim)
+    feature_columns = {"document_tokens": document_embedding_column}
+    if use_weight_feature and FLAGS.weights_feature_name:
+        feature_columns[FLAGS.weights_feature_name] = (
+            tf.feature_column.numeric_column(FLAGS.weights_feature_name,
+                                             default_value=1.))
+    return feature_columns
 
 
 def make_input_fn(file_pattern,
